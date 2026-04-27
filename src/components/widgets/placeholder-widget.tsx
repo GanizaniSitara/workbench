@@ -1,0 +1,24 @@
+import type { WidgetType } from "@/lib/layout";
+
+const LABELS: Record<WidgetType, string> = {
+  "macro-strip": "Macro widget",
+  "macro-timeseries": "Rates chart widget",
+  "yield-curve": "Yield curve widget",
+  "macro-watchlist": "Key rates widget",
+  "placeholder-chart": "Chart widget — coming in WBN-005",
+  "placeholder-watchlist": "Watchlist widget — coming in WBN-004",
+  "placeholder-chat": "AI Chat widget — coming in WBN-006",
+  "placeholder-news": "News widget — coming in WBN-008",
+};
+
+interface PlaceholderWidgetProps {
+  type: WidgetType;
+}
+
+export function PlaceholderWidget({ type }: PlaceholderWidgetProps) {
+  return (
+    <div className={`placeholder-widget placeholder-widget--${type}`}>
+      <span className="placeholder-widget__label">{LABELS[type]}</span>
+    </div>
+  );
+}

@@ -1,0 +1,74 @@
+"use client";
+
+import GridLayout, { WidthProvider, type Layout } from "react-grid-layout";
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
+import { useCallback } from "react";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { WidgetChrome } from "@/components/workspace/widget-chrome";
+import { AiChatWidget } from "@/components/widgets/ai-chat-widget";
+import { MacroStripWidget } from "@/components/widgets/macro-strip-widget";
+import { MacroTimeseriesWidget } from "@/components/widgets/macro-timeseries-widget";
+import { MacroWatchlistWidget } from "@/components/widgets/macro-watchlist-widget";
+import { NewsWidget } from "@/components/widgets/news-widget";
+import { PlaceholderWidget } from "@/components/widgets/placeholder-widget";
+import { YieldCurveWidget } from "@/components/widgets/yield-curve-widget";
+import type { WidgetDefinition } from "@/lib/layout";
+
+const WidthAdaptiveGrid = WidthProvider(GridLayout);
+
+function renderWidget(widget: WidgetDefinition) {
+  switch (widget.type) {
+    case "macro-strip":
+      return <MacroStripWidget />;
+    case "macro-timeseries":
+      return <MacroTimeseriesWidget />;
+    case "yield-curve":
+      return <YieldCurveWidget />;
+    case "macro-watchlist":
+      return <MacroWatchlistWidget />;
+    case "placeholder-chat":
+      return <AiChatWidget sessionId={widget.config?.sessionId ?? widget.id} />;
+    case "placeholder-news":
+      return <NewsWidget />;
+    default:
+      return <PlaceholderWidget type={widget.type} />;
+  }
+}
+
+export default function WorkspaceGridInner() {
+  const { layout, updateGrid } = useWorkspace();
+
+  const handleLayoutChange = useCallback(
+    (nextLayout: Layout[]) => {
+      updateGrid(nextLayout);
+    },
+    [updateGrid],
+  );
+
+  return (
+    <WidthAdaptiveGrid
+      className="workspace-grid"
+      layout={layout.grid}
+      cols={12}
+      rowHeight={40}
+      draggableHandle=".drag-handle"
+      onLayoutChange={handleLayoutChange}
+      margin={[2, 2]}
+      containerPadding={[0, 0]}
+      resizeHandles={["se"]}
+    >
+      {layout.widgets.map((widget) => (
+        <div key={widget.id} className="widget-slot">
+          <WidgetChrome
+            widgetId={widget.id}
+            widgetType={widget.type}
+            title={widget.title}
+          >
+            {renderWidget(widget)}
+          </WidgetChrome>
+        </div>
+      ))}
+    </WidthAdaptiveGrid>
+  );
+}

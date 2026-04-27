@@ -1,0 +1,52 @@
+{
+  "name": "workbench",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"bun run dev:api\" \"bun run dev:web\"",
+    "dev:web": "vite",
+    "dev:api": "tsx watch --clear-screen=false src/server/index.ts",
+    "build": "bun run build:web && bun run build:api",
+    "build:web": "vite build",
+    "build:api": "tsc -p tsconfig.server.json",
+    "start": "concurrently \"bun run start:api\" \"bun run start:web\"",
+    "start:web": "vite preview",
+    "start:api": "node dist-api/server/index.js",
+    "lint": "eslint src tests vite.config.ts playwright.config.ts",
+    "lint:fix": "eslint src tests vite.config.ts playwright.config.ts --fix",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.5",
+    "ag-grid-community": "^34.3.1",
+    "ag-grid-react": "^34.3.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-grid-layout": "^1.5.2",
+    "lightweight-charts": "^5.0.9"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.59.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/react-grid-layout": "^2.1.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^9",
+    "globals": "^16.4.0",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5",
+    "typescript-eslint": "^8.46.2",
+    "vite": "^7.1.12"
+  }
+}

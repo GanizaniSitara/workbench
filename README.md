@@ -50,6 +50,14 @@ bun run dev
 
 The Vite dev server proxies `/api/*` and `/health` to the local backend on port `4000`, so the app is used from port `3000`.
 
+For a new environment, start from `.env.example` and set `OPENBB_BASE_URL` to an OpenBB-compatible API. The current market widgets require:
+
+- `GET /api/v1/economy/fred_series?provider=fred&symbol=<FRED_SYMBOL>&limit=<N>`
+- `GET /api/v1/fixedincome/government/yield_curve?provider=fred`
+- `GET /api/v1/news/company?provider=yfinance&symbol=SPY,QQQ,AAPL,MSFT,NVDA&limit=<N>`
+
+QuestDB, Ollama, and chat-memory services are optional. Without QuestDB, market routes use OpenBB directly. Without Ollama, the chat widget renders but sends return an API error. Without chat memory config, chat history persistence is disabled.
+
 ## Scripts
 
 | Script                 | Purpose                                             |
@@ -71,11 +79,10 @@ The API service uses:
 
 - `PORT` - API port (default `4000`)
 - `FRONTEND_ORIGIN` - optional comma-separated CORS allowlist
-- `OPENBB_BASE_URL`
-- `QUESTDB_URL`
-- `MONIKER_RESOLVER_URL`
-- `OLLAMA_BASE_URL`
-- `OLLAMA_MODEL`
+- `OPENBB_BASE_URL` - OpenBB-compatible API base URL for market data and preferred news
+- `QUESTDB_URL` - optional QuestDB HTTP endpoint for cache-first market data
+- `OLLAMA_BASE_URL` - optional Ollama endpoint for `/api/chat`
+- `OLLAMA_MODEL` - optional Ollama model name for `/api/chat`
 
 ## Notes
 

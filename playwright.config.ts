@@ -1,10 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const bunCommand =
-  process.platform === "win32"
-    ? "C:\\Users\\admin\\.bun\\bin\\bun.exe run dev"
-    : "bun run dev";
-
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,
@@ -16,7 +11,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: bunCommand,
+    command: "bun run dev",
     url: "http://127.0.0.1:3000",
     reuseExistingServer: true,
     timeout: 90_000,

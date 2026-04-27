@@ -3,8 +3,8 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { apiUrl } from "@/lib/api-base";
 
-const MEMORY_API = "http://192.168.1.79:8000";
-const USER_ID = "admin";
+const MEMORY_API = import.meta.env.VITE_MEMORY_API_BASE_URL?.trim() ?? "";
+const USER_ID = import.meta.env.VITE_MEMORY_USER_ID?.trim() ?? "workbench";
 const NAMESPACE = "workbench.chat";
 
 interface ChatMessage {
@@ -33,6 +33,8 @@ interface ChatApiResponse {
 }
 
 async function fetchHistory(sessionId: string): Promise<ChatMessage[]> {
+  if (!MEMORY_API) return [];
+
   const res = await fetch(`${MEMORY_API}/v1/long-term-memory/search`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -69,6 +71,8 @@ async function persistMessage(
   role: "user" | "assistant",
   content: string,
 ): Promise<void> {
+  if (!MEMORY_API) return;
+
   const res = await fetch(`${MEMORY_API}/v1/long-term-memory/`, {
     method: "POST",
     headers: { "content-type": "application/json" },

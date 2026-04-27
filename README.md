@@ -65,6 +65,7 @@ The Vite dev server proxies `/api/*` and `/health` to the local backend on port 
 ## Environment
 
 The frontend reads `VITE_API_BASE_URL` and defaults to same-origin `/api/*` requests.
+Set `VITE_MEMORY_API_BASE_URL` and `VITE_MEMORY_USER_ID` only if the chat widget should persist history to an external memory service; without them, chat still calls the API but history persistence is disabled.
 
 The API service uses:
 

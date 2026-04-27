@@ -560,6 +560,24 @@ code {
   width: 100%;
 }
 
+.widget-slot--suppressed .widget-chrome {
+  visibility: hidden;
+}
+
+.widget-slot--maximized .widget-chrome {
+  border-radius: 0;
+  box-shadow: 0 12px 40px var(--shadow);
+  height: calc(100vh - var(--toolbar-height));
+  inset: var(--toolbar-height) 0 0 0;
+  position: fixed;
+  width: 100vw;
+  z-index: 450;
+}
+
+.widget-slot--maximized .widget-chrome__header {
+  cursor: default;
+}
+
 /* ─── Widget chrome ──────────────────────────────────────────────────── */
 .widget-chrome {
   background: var(--panel-background);
@@ -592,11 +610,20 @@ code {
 
 .widget-chrome__title {
   color: var(--foreground);
+  flex: 1;
   font-size: 0.72rem;
   font-weight: 600;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.widget-chrome__actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.15rem;
 }
 
 .widget-chrome__menu {
@@ -604,7 +631,7 @@ code {
   position: relative;
 }
 
-.widget-chrome__menu-trigger {
+.widget-chrome__icon-btn {
   align-items: center;
   background: transparent;
   border: none;
@@ -621,8 +648,9 @@ code {
   width: 1.1rem;
 }
 
-.widget-chrome__menu-trigger:hover,
-.widget-chrome__menu-trigger[aria-expanded="true"] {
+.widget-chrome__icon-btn:hover,
+.widget-chrome__icon-btn[aria-expanded="true"],
+.widget-chrome__icon-btn[aria-pressed="true"] {
   background: var(--panel-border);
   color: var(--foreground);
 }

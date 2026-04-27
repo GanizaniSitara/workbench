@@ -18,10 +18,16 @@ export function WidgetChrome({
   title,
   children,
 }: WidgetChromeProps) {
-  const { duplicateWidget, removeWidget } = useWorkspace();
+  const {
+    duplicateWidget,
+    maximizedWidgetId,
+    removeWidget,
+    toggleMaximizedWidget,
+  } = useWorkspace();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const isSingleton = getWidgetRegistryEntry(widgetType).singleton;
+  const isMaximized = maximizedWidgetId === widgetId;
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -48,52 +54,72 @@ export function WidgetChrome({
     <div className="widget-chrome">
       <header className="widget-chrome__header drag-handle">
         <span className="widget-chrome__title">{title}</span>
-        <div className="widget-chrome__menu" ref={menuRef}>
+        <div className="widget-chrome__actions">
           <button
-            aria-expanded={isMenuOpen}
-            aria-label={`${title} widget actions`}
-            className="widget-chrome__menu-trigger"
-            onClick={() => setIsMenuOpen((open) => !open)}
+            aria-label={
+              isMaximized
+                ? `Restore ${title} widget`
+                : `Maximize ${title} widget`
+            }
+            aria-pressed={isMaximized}
+            className="widget-chrome__icon-btn"
+            onClick={() => {
+              setIsMenuOpen(false);
+              toggleMaximizedWidget(widgetId);
+            }}
             onMouseDown={(event) => event.stopPropagation()}
+            title={isMaximized ? "Restore" : "Maximize"}
             type="button"
           >
-            ⋯
+            {isMaximized ? "⤡" : "⤢"}
           </button>
-          {isMenuOpen && (
-            <div className="widget-chrome__menu-popover" role="menu">
-              <button
-                className="widget-chrome__menu-item"
-                disabled={isSingleton}
-                onClick={() => {
-                  duplicateWidget(widgetId);
-                  setIsMenuOpen(false);
-                }}
-                onMouseDown={(event) => event.stopPropagation()}
-                role="menuitem"
-                type="button"
-              >
-                Duplicate
-              </button>
-              <button
-                className="widget-chrome__menu-item"
-                disabled
-                onMouseDown={(event) => event.stopPropagation()}
-                role="menuitem"
-                type="button"
-              >
-                Configure
-              </button>
-              <button
-                className="widget-chrome__menu-item widget-chrome__menu-item--danger"
-                onClick={() => removeWidget(widgetId)}
-                onMouseDown={(event) => event.stopPropagation()}
-                role="menuitem"
-                type="button"
-              >
-                Remove
-              </button>
-            </div>
-          )}
+          <div className="widget-chrome__menu" ref={menuRef}>
+            <button
+              aria-expanded={isMenuOpen}
+              aria-label={`${title} widget actions`}
+              className="widget-chrome__icon-btn"
+              onClick={() => setIsMenuOpen((open) => !open)}
+              onMouseDown={(event) => event.stopPropagation()}
+              type="button"
+            >
+              ⋯
+            </button>
+            {isMenuOpen && (
+              <div className="widget-chrome__menu-popover" role="menu">
+                <button
+                  className="widget-chrome__menu-item"
+                  disabled={isSingleton}
+                  onClick={() => {
+                    duplicateWidget(widgetId);
+                    setIsMenuOpen(false);
+                  }}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  role="menuitem"
+                  type="button"
+                >
+                  Duplicate
+                </button>
+                <button
+                  className="widget-chrome__menu-item"
+                  disabled
+                  onMouseDown={(event) => event.stopPropagation()}
+                  role="menuitem"
+                  type="button"
+                >
+                  Configure
+                </button>
+                <button
+                  className="widget-chrome__menu-item widget-chrome__menu-item--danger"
+                  onClick={() => removeWidget(widgetId)}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  role="menuitem"
+                  type="button"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
       <div className="widget-chrome__body">{children}</div>

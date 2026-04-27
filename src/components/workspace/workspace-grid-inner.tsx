@@ -37,7 +37,7 @@ function renderWidget(widget: WidgetDefinition) {
 }
 
 export default function WorkspaceGridInner() {
-  const { layout, updateGrid } = useWorkspace();
+  const { layout, maximizedWidgetId, updateGrid } = useWorkspace();
 
   const handleLayoutChange = useCallback(
     (nextLayout: Layout[]) => {
@@ -53,13 +53,27 @@ export default function WorkspaceGridInner() {
       cols={12}
       rowHeight={40}
       draggableHandle=".drag-handle"
+      isDraggable={!maximizedWidgetId}
+      isResizable={!maximizedWidgetId}
       onLayoutChange={handleLayoutChange}
       margin={[2, 2]}
       containerPadding={[0, 0]}
       resizeHandles={["se"]}
+      useCSSTransforms={false}
     >
       {layout.widgets.map((widget) => (
-        <div key={widget.id} className="widget-slot">
+        <div
+          key={widget.id}
+          className={[
+            "widget-slot",
+            maximizedWidgetId === widget.id ? "widget-slot--maximized" : "",
+            maximizedWidgetId && maximizedWidgetId !== widget.id
+              ? "widget-slot--suppressed"
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           <WidgetChrome
             widgetId={widget.id}
             widgetType={widget.type}

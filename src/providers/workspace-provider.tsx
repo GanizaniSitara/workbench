@@ -25,12 +25,15 @@ export const DEV_USER_ID = "dev-user";
 interface WorkspaceContextValue {
   userId: string;
   layout: WorkspaceLayout;
+  maximizedWidgetId: string | null;
   updateGrid: (grid: LayoutItem[]) => void;
   addWidget: (widget: WidgetDefinition, position?: Partial<LayoutItem>) => void;
   addWidgetByType: (type: WidgetType) => void;
   duplicateWidget: (widgetId: string) => void;
   removeWidget: (widgetId: string) => void;
   resetLayout: () => void;
+  restoreWidget: () => void;
+  toggleMaximizedWidget: (widgetId: string) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -67,6 +70,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [layout, setLayout] = useState<WorkspaceLayout>(() =>
     buildDefaultLayout(DEV_USER_ID),
   );
+  const [maximizedWidgetId, setMaximizedWidgetId] = useState<string | null>(
+    null,
+  );
 
   // After mount, hydrate from localStorage (deferred so it doesn't cascade with SSR render)
   useEffect(() => {
@@ -85,6 +91,17 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     saveLayout(layout);
   }, [layout]);
+
+  useEffect(() => {
+    if (!maximizedWidgetId) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMaximizedWidgetId(null);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [maximizedWidgetId]);
 
   const updateGrid = useCallback((grid: LayoutItem[]) => {
     setLayout((prev) => ({ ...prev, grid }));
@@ -186,6 +203,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const removeWidget = useCallback((widgetId: string) => {
+    setMaximizedWidgetId((current) => (current === widgetId ? null : current));
     setLayout((prev) => ({
       ...prev,
       widgets: prev.widgets.filter((w) => w.id !== widgetId),
@@ -195,6 +213,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const resetLayout = useCallback(() => {
     const base = buildDefaultLayout(DEV_USER_ID);
+    setMaximizedWidgetId(null);
     setLayout({
       ...base,
       widgets: base.widgets.map((w) =>
@@ -205,17 +224,28 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const restoreWidget = useCallback(() => {
+    setMaximizedWidgetId(null);
+  }, []);
+
+  const toggleMaximizedWidget = useCallback((widgetId: string) => {
+    setMaximizedWidgetId((current) => (current === widgetId ? null : widgetId));
+  }, []);
+
   return (
     <WorkspaceContext.Provider
       value={{
         userId: DEV_USER_ID,
         layout,
+        maximizedWidgetId,
         updateGrid,
         addWidget,
         addWidgetByType,
         duplicateWidget,
         removeWidget,
         resetLayout,
+        restoreWidget,
+        toggleMaximizedWidget,
       }}
     >
       {children}

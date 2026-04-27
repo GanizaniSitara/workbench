@@ -16,31 +16,33 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #09101a;
-  --foreground: #e8edf5;
-  --panel-background: #111b29;
-  --panel-background-strong: #0b121c;
-  --panel-border: #26364c;
-  --panel-border-subtle: #1a2a3e;
-  --muted: #8da2c0;
-  --accent: #5db0ff;
-  --accent-contrast: #07101b;
-  --shadow: rgba(0, 0, 0, 0.32);
+  /* Nebula Dark — color-scheme-4 */
+  --background: #1A223F;
+  --foreground: #F0F2F8;
+  --panel-background: #293150;
+  --panel-background-strong: #1A223F;
+  --panel-border: rgba(189, 200, 240, 0.12);
+  --panel-border-subtle: rgba(189, 200, 240, 0.07);
+  --muted: #8892B0;
+  --accent: #2196F3;
+  --accent-contrast: #1A223F;
+  --shadow: rgba(0, 0, 0, 0.4);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --background: #09101a;
-    --foreground: #e8edf5;
-    --panel-background: #111b29;
-    --panel-background-strong: #0b121c;
-    --panel-border: #26364c;
-    --panel-border-subtle: #1a2a3e;
-    --muted: #8da2c0;
-    --accent: #5db0ff;
-    --accent-contrast: #07101b;
-    --shadow: rgba(0, 0, 0, 0.32);
+    /* Nebula Dark — color-scheme-4 */
+    --background: #1A223F;
+    --foreground: #F0F2F8;
+    --panel-background: #293150;
+    --panel-background-strong: #1A223F;
+    --panel-border: rgba(189, 200, 240, 0.12);
+    --panel-border-subtle: rgba(189, 200, 240, 0.07);
+    --muted: #8892B0;
+    --accent: #2196F3;
+    --accent-contrast: #1A223F;
+    --shadow: rgba(0, 0, 0, 0.4);
   }
 }
 

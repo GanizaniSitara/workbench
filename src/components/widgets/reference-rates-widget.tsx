@@ -3,53 +3,40 @@
 import { useEffect, useState } from "react";
 import { queryData } from "@/lib/data-query";
 
-interface MacroSeries {
+interface RateSeries {
   id: string;
   label: string;
   value: number | null;
   date: string | null;
   source?: string;
-}
-
-interface MacroResponse {
-  shape?: "snapshot";
-  results?: MacroSeries[];
   error?: string;
 }
 
-const LEVEL_SERIES = new Set(["CPIAUCSL", "VIXCLS"]);
-
-function formatMacroValue(series: MacroSeries): string {
-  if (series.value === null || Number.isNaN(series.value)) return "-";
-  if (LEVEL_SERIES.has(series.id)) {
-    return new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 2,
-    }).format(series.value);
-  }
-  return `${series.value.toFixed(2)}%`;
+interface RatesResponse {
+  shape?: "snapshot";
+  results?: RateSeries[];
+  error?: string;
 }
 
-export function MacroStripWidget({
-  moniker = "macro.indicators",
+export function ReferenceRatesWidget({
+  moniker = "reference.rates",
 }: {
   moniker?: string;
 }) {
-  const [series, setSeries] = useState<MacroSeries[]>([]);
+  const [series, setSeries] = useState<RateSeries[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadMacroData() {
+    async function loadRates() {
       setIsLoading(true);
       setError(null);
       try {
-        const body = await queryData<MacroResponse>({
+        const body = await queryData<RatesResponse>({
           moniker,
           shape: "snapshot",
-          params: { limit: 1 },
         });
         if (!cancelled) setSeries(body.results ?? []);
       } catch (err) {
@@ -60,7 +47,7 @@ export function MacroStripWidget({
       }
     }
 
-    void loadMacroData();
+    void loadRates();
     return () => {
       cancelled = true;
     };
@@ -68,24 +55,30 @@ export function MacroStripWidget({
 
   if (isLoading) {
     return (
-      <div className="macro-strip macro-strip--state">Loading macro data</div>
+      <div className="macro-strip macro-strip--state">
+        Loading reference rates
+      </div>
     );
   }
 
   if (error) {
     return (
       <div className="macro-strip macro-strip--state">
-        Macro data unavailable
+        Reference rates unavailable
       </div>
     );
   }
 
   return (
-    <div className="macro-strip" aria-label="Macro indicators">
+    <div className="macro-strip" aria-label="Reference rates">
       {series.map((item) => (
         <article className="macro-strip__card" key={item.id}>
           <div className="macro-strip__label">{item.label}</div>
-          <div className="macro-strip__value">{formatMacroValue(item)}</div>
+          <div className="macro-strip__value">
+            {item.value === null || Number.isNaN(item.value)
+              ? "-"
+              : `${item.value.toFixed(2)}%`}
+          </div>
           <div className="macro-strip__meta">
             <span>{item.id}</span>
             <span>{item.date ?? "-"}</span>

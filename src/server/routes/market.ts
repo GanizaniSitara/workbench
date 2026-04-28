@@ -82,3 +82,51 @@ marketRouter.get("/yields", async (req, res) => {
     return res.status(500).json({ error: "data query failed" });
   }
 });
+
+marketRouter.get("/reference-rates", async (_req, res) => {
+  try {
+    const result = await queryData({
+      moniker: "reference.rates",
+      shape: "snapshot",
+    });
+    return res.json({ results: result.results });
+  } catch (error) {
+    if (error instanceof DataQueryError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    return res.status(500).json({ error: "data query failed" });
+  }
+});
+
+marketRouter.get("/equity", async (req, res) => {
+  const symbol =
+    typeof req.query.symbol === "string" ? req.query.symbol.toUpperCase() : "";
+  const range = typeof req.query.range === "string" ? req.query.range : "1y";
+
+  if (!symbol) {
+    return res.status(400).json({ error: "symbol is required" });
+  }
+
+  try {
+    const result = await queryData({
+      moniker: `equity.prices/${symbol}`,
+      shape: "timeseries",
+      params: { range },
+    });
+    if (result.shape !== "timeseries") {
+      return res.status(500).json({ error: "unexpected data query shape" });
+    }
+    return res.json({
+      symbol: result.symbol,
+      label: result.label,
+      range: result.range,
+      source: result.source,
+      results: result.results,
+    });
+  } catch (error) {
+    if (error instanceof DataQueryError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    return res.status(500).json({ error: "data query failed" });
+  }
+});

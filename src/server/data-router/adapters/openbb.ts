@@ -128,3 +128,94 @@ export async function fetchYieldCurveFromOpenBb(
     return null;
   }
 }
+
+// Reference rates: SONIA, SOFR, ESTR, EFFR
+// These endpoints return values in decimal form (0.044 = 4.4%) and sort ascending,
+// so we use a rolling 30-day start_date window and take the last (most recent) record.
+export async function fetchLatestReferenceRateFromOpenBb(
+  baseUrl: string,
+  route: RouteStep,
+): Promise<OpenBbLatestSeries> {
+  try {
+    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+    const url = routeUrl(baseUrl, route, `start_date=${startDate}`);
+    const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!response.ok) {
+      return { value: null, date: null, error: `HTTP ${response.status}` };
+    }
+    const body = await response.json();
+    const results: Array<Record<string, unknown>> = body?.results ?? [];
+    const latest = results[results.length - 1] ?? null;
+    const raw = latest?.rate ?? latest?.value ?? null;
+    return {
+      value: raw !== null ? Number(raw) * 100 : null,
+      date: typeof latest?.date === "string" ? latest.date.split("T")[0] : null,
+    };
+  } catch (err) {
+    return { value: null, date: null, error: String(err) };
+  }
+}
+
+// Latest equity close via yfinance — used for snapshot queries (e.g. VIX card)
+export async function fetchLatestEquityFromOpenBb(
+  baseUrl: string,
+  route: RouteStep,
+): Promise<OpenBbLatestSeries> {
+  try {
+    const symbol = String(route.ref.symbol);
+    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+    const url = routeUrl(
+      baseUrl,
+      route,
+      `symbol=${encodeURIComponent(symbol)}&start_date=${startDate}`,
+    );
+    const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!response.ok) {
+      return { value: null, date: null, error: `HTTP ${response.status}` };
+    }
+    const body = await response.json();
+    const results: Array<Record<string, unknown>> = body?.results ?? [];
+    const latest = results[results.length - 1] ?? null;
+    const close = latest?.close ?? null;
+    return {
+      value: close !== null ? Number(close) : null,
+      date: typeof latest?.date === "string" ? latest.date.split("T")[0] : null,
+    };
+  } catch (err) {
+    return { value: null, date: null, error: String(err) };
+  }
+}
+
+// Equity price history via yfinance — maps `close` to `value`
+export async function fetchEquityHistoryFromOpenBb(
+  baseUrl: string,
+  route: RouteStep,
+): Promise<SeriesPoint[] | null> {
+  try {
+    const symbol = String(route.ref.symbol);
+    const limit = Number(route.ref.limit ?? 252);
+    const url = routeUrl(
+      baseUrl,
+      route,
+      `symbol=${encodeURIComponent(symbol)}&limit=${limit}`,
+    );
+    const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!response.ok) return null;
+    const body = await response.json();
+    const rows: Array<{ date?: string; close?: number }> = body?.results ?? [];
+    if (!rows.length) return null;
+    return rows
+      .map((row) => ({
+        date: String(row.date ?? "").split("T")[0],
+        value: Number(row.close),
+      }))
+      .filter((point) => point.date && Number.isFinite(point.value))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  } catch {
+    return null;
+  }
+}

@@ -15,6 +15,22 @@ const SERIES_SYMBOLS = new Set([
   "UNRATE",
 ]);
 
+const REFERENCE_RATE_CONFIGS: Record<
+  string,
+  { endpoint: string; provider: string }
+> = {
+  SONIA: { endpoint: "/api/v1/fixedincome/rate/sonia", provider: "fred" },
+  SOFR: {
+    endpoint: "/api/v1/fixedincome/rate/sofr",
+    provider: "federal_reserve",
+  },
+  ESTR: { endpoint: "/api/v1/fixedincome/rate/estr", provider: "ecb" },
+  EFFR: {
+    endpoint: "/api/v1/fixedincome/rate/effr",
+    provider: "federal_reserve",
+  },
+};
+
 function canonicalMoniker(moniker: string): string {
   return moniker.replace(/\/date@[^/]*/g, "").replace(/\/filter@[^/]*/g, "");
 }
@@ -56,6 +72,28 @@ const FALLBACK_POLICIES = new Set<RoutePlan["policy"]["fallback"]>([
 ]);
 
 export const ROUTE_PLAN_STUBS: RoutePlanStub[] = [
+  {
+    id: "vix-equity",
+    shapes: ["snapshot"],
+    match: (canonical) => {
+      const parts = canonical.split("/");
+      const symbol = parts[parts.length - 1]?.toUpperCase();
+      return parts[0] === "macro.indicators" && symbol === "VIXCLS"
+        ? { symbol: "^VIX" }
+        : null;
+    },
+    routes: [
+      {
+        source: "openbb",
+        ref: {
+          endpoint: "/api/v1/equity/price/historical",
+          provider: "yfinance",
+          symbol: { from: "context", name: "symbol" },
+        },
+      },
+    ],
+    policy: { fallback: "ordered", ttlSeconds: 300 },
+  },
   {
     id: "fred-series",
     shapes: ["snapshot", "timeseries"],
@@ -118,6 +156,48 @@ export const ROUTE_PLAN_STUBS: RoutePlanStub[] = [
       fallback: "ordered",
       ttlSeconds: 60,
     },
+  },
+  {
+    id: "reference-rate",
+    shapes: ["snapshot"],
+    match: (canonical) => {
+      const parts = canonical.split("/");
+      if (parts[0] !== "reference.rates" || parts.length !== 2) return null;
+      const symbol = parts[1].toUpperCase();
+      const config = REFERENCE_RATE_CONFIGS[symbol];
+      return config ? { symbol, ...config } : null;
+    },
+    routes: [
+      {
+        source: "openbb",
+        ref: {
+          endpoint: { from: "context", name: "endpoint" },
+          provider: { from: "context", name: "provider" },
+        },
+      },
+    ],
+    policy: { fallback: "ordered", ttlSeconds: 300 },
+  },
+  {
+    id: "equity-price",
+    shapes: ["timeseries"],
+    match: (canonical) => {
+      const parts = canonical.split("/");
+      if (parts[0] !== "equity.prices" || !parts[1]) return null;
+      return { symbol: parts[1].toUpperCase() };
+    },
+    routes: [
+      {
+        source: "openbb",
+        ref: {
+          endpoint: "/api/v1/equity/price/historical",
+          provider: "yfinance",
+          symbol: { from: "context", name: "symbol" },
+          limit: { from: "param", name: "limit", default: 252 },
+        },
+      },
+    ],
+    policy: { fallback: "ordered", ttlSeconds: 60 },
   },
 ];
 

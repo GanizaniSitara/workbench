@@ -1,4 +1,7 @@
 import {
+  fetchEquityHistoryFromOpenBb,
+  fetchLatestEquityFromOpenBb,
+  fetchLatestReferenceRateFromOpenBb,
   fetchLatestSeriesFromOpenBb,
   fetchSeriesFromOpenBb,
   fetchYieldCurveFromOpenBb,
@@ -22,6 +25,7 @@ const MACRO_SERIES = [
   { id: "T10Y2Y", label: "10Y-2Y Spread" },
   { id: "CPIAUCSL", label: "CPI (YoY)" },
   { id: "UNRATE", label: "Unemployment Rate" },
+  { id: "VIXCLS", label: "VIX" },
 ] as const;
 
 const SERIES_INFO: Record<
@@ -35,7 +39,15 @@ const SERIES_INFO: Record<
   T10Y2Y: { label: "10Y-2Y Spread", format: "percent" },
   CPIAUCSL: { label: "CPI", format: "level" },
   UNRATE: { label: "Unemployment Rate", format: "percent" },
+  VIXCLS: { label: "VIX", format: "level" },
 };
+
+const REFERENCE_RATE_SERIES = [
+  { id: "SONIA", label: "SONIA", moniker: "reference.rates/SONIA" },
+  { id: "SOFR", label: "SOFR", moniker: "reference.rates/SOFR" },
+  { id: "ESTR", label: "ESTR", moniker: "reference.rates/ESTR" },
+  { id: "EFFR", label: "EFFR", moniker: "reference.rates/EFFR" },
+] as const;
 
 const RANGE_LIMITS: Record<string, number> = {
   "1m": 31,
@@ -169,7 +181,10 @@ async function querySeriesSnapshot(
     },
     openbb: async (route) => {
       if (!env.openbbUrl) return null;
-      const live = await fetchLatestSeriesFromOpenBb(env.openbbUrl, route);
+      const isEquity = String(route.ref.endpoint).includes("/equity/");
+      const live = isEquity
+        ? await fetchLatestEquityFromOpenBb(env.openbbUrl, route)
+        : await fetchLatestSeriesFromOpenBb(env.openbbUrl, route);
       return { id, label, ...live, source: "openbb" };
     },
   });
@@ -310,15 +325,118 @@ async function queryCurve(
   throw new DataQueryError(503, "data unavailable");
 }
 
+async function queryReferenceRateSnapshot(
+  request: DatasetRequest,
+  env: DataQueryEnv,
+  id: string,
+  label: string,
+  moniker: string,
+): Promise<SeriesResult> {
+  const routePlan = await resolveRoutePlan({
+    ...request,
+    moniker,
+    shape: "snapshot",
+    params: {},
+  });
+  if (!routePlan) {
+    return { id, label, value: null, date: null, error: "data unavailable" };
+  }
+
+  const routed = await executeRoutePlan<SeriesResult>(routePlan, {
+    openbb: async (route) => {
+      if (!env.openbbUrl) return null;
+      const live = await fetchLatestReferenceRateFromOpenBb(
+        env.openbbUrl,
+        route,
+      );
+      return { id, label, ...live, source: "openbb" as const };
+    },
+  });
+
+  if (routed) return routed.data;
+  return { id, label, value: null, date: null, error: "data unavailable" };
+}
+
+async function queryReferenceRatesSnapshot(
+  request: DatasetRequest,
+  env: DataQueryEnv,
+): Promise<SnapshotQueryResult> {
+  const results = await Promise.all(
+    REFERENCE_RATE_SERIES.map(({ id, label, moniker }) =>
+      queryReferenceRateSnapshot(request, env, id, label, moniker),
+    ),
+  );
+  return { shape: "snapshot" as const, results };
+}
+
+async function queryEquityTimeseries(
+  request: DatasetRequest,
+  env: DataQueryEnv,
+): Promise<TimeseriesQueryResult> {
+  const parts = canonicalMoniker(request.moniker).split("/");
+  const symbol = parts[1]?.toUpperCase();
+  if (!symbol) {
+    throw new DataQueryError(400, "equity.prices requires a symbol");
+  }
+
+  const requestedRange = readStringParam(request.params, "range");
+  const resolvedRange =
+    requestedRange && RANGE_LIMITS[requestedRange] ? requestedRange : "1y";
+  const limit =
+    readNumberParam(request.params, "limit") ?? RANGE_LIMITS[resolvedRange];
+
+  if (!env.openbbUrl) {
+    throw new DataQueryError(503, "OPENBB_BASE_URL is not configured");
+  }
+
+  const routePlan = await resolveRoutePlan({
+    ...request,
+    params: { ...request.params, limit, range: resolvedRange },
+  });
+  if (!routePlan) {
+    throw new DataQueryError(503, "data unavailable");
+  }
+
+  const routed = await executeRoutePlan<SeriesRouteResult>(routePlan, {
+    openbb: async (route) => {
+      if (!env.openbbUrl) return null;
+      const live = await fetchEquityHistoryFromOpenBb(env.openbbUrl, route);
+      return live ? { results: live, source: "openbb" as const } : null;
+    },
+  });
+
+  if (routed) {
+    return {
+      shape: "timeseries" as const,
+      symbol,
+      label: symbol,
+      format: "level",
+      range: resolvedRange,
+      source: routed.data.source,
+      results: routed.data.results,
+    };
+  }
+
+  throw new DataQueryError(502, `No data returned for ${symbol}`);
+}
+
 export async function queryData(
   request: DatasetRequest,
   env: DataQueryEnv = defaultEnv(),
 ): Promise<DataQueryResult> {
+  const canonical = canonicalMoniker(request.moniker);
+
   if (request.shape === "snapshot") {
+    if (canonical === "reference.rates") {
+      return queryReferenceRatesSnapshot(request, env);
+    }
     return querySnapshot(request, env);
   }
 
   if (request.shape === "timeseries") {
+    if (canonical.startsWith("equity.prices/")) {
+      return queryEquityTimeseries(request, env);
+    }
     return queryTimeseries(request, env);
   }
 

@@ -5,6 +5,8 @@ const LABELS: Record<WidgetType, string> = {
   "macro-timeseries": "Rates chart widget",
   "yield-curve": "Yield curve widget",
   "macro-watchlist": "Key rates widget",
+  "reference-rates": "Reference rates widget",
+  "equity-chart": "Equity chart widget",
   "placeholder-chart": "Chart widget — coming in WBN-005",
   "placeholder-watchlist": "Watchlist widget — coming in WBN-004",
   "placeholder-chat": "AI Chat widget — coming in WBN-006",

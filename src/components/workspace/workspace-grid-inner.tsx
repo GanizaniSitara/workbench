@@ -7,11 +7,13 @@ import { useCallback } from "react";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { WidgetChrome } from "@/components/workspace/widget-chrome";
 import { AiChatWidget } from "@/components/widgets/ai-chat-widget";
+import { EquityChartWidget } from "@/components/widgets/equity-chart-widget";
 import { MacroStripWidget } from "@/components/widgets/macro-strip-widget";
 import { MacroTimeseriesWidget } from "@/components/widgets/macro-timeseries-widget";
 import { MacroWatchlistWidget } from "@/components/widgets/macro-watchlist-widget";
 import { NewsWidget } from "@/components/widgets/news-widget";
 import { PlaceholderWidget } from "@/components/widgets/placeholder-widget";
+import { ReferenceRatesWidget } from "@/components/widgets/reference-rates-widget";
 import { YieldCurveWidget } from "@/components/widgets/yield-curve-widget";
 import type { WidgetDefinition } from "@/lib/layout";
 
@@ -31,6 +33,10 @@ function renderWidget(widget: WidgetDefinition) {
       return <AiChatWidget sessionId={widget.config?.sessionId ?? widget.id} />;
     case "placeholder-news":
       return <NewsWidget />;
+    case "reference-rates":
+      return <ReferenceRatesWidget moniker={widget.config?.moniker} />;
+    case "equity-chart":
+      return <EquityChartWidget moniker={widget.config?.moniker} />;
     default:
       return <PlaceholderWidget type={widget.type} />;
   }

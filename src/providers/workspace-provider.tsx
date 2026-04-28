@@ -13,6 +13,7 @@ import {
   loadLayout,
   saveLayout,
   type LayoutItem,
+  type Screen,
   type WidgetDefinition,
   type WidgetType,
   type WorkspaceLayout,
@@ -24,7 +25,11 @@ export const DEV_USER_ID = "dev-user";
 
 interface WorkspaceContextValue {
   userId: string;
-  layout: WorkspaceLayout;
+  layout: { widgets: WidgetDefinition[]; grid: LayoutItem[] };
+  screens: Screen[];
+  activeScreenId: string;
+  setActiveScreenId: (id: string) => void;
+  addScreen: () => void;
   maximizedWidgetId: string | null;
   updateGrid: (grid: LayoutItem[]) => void;
   addWidget: (widget: WidgetDefinition, position?: Partial<LayoutItem>) => void;
@@ -66,8 +71,20 @@ function buildWidgetGridItem(
   };
 }
 
+function updateActiveScreen(
+  prev: WorkspaceLayout,
+  updater: (screen: Screen) => Screen,
+): WorkspaceLayout {
+  return {
+    ...prev,
+    screens: prev.screens.map((s) =>
+      s.id === prev.activeScreenId ? updater(s) : s,
+    ),
+  };
+}
+
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const [layout, setLayout] = useState<WorkspaceLayout>(() =>
+  const [fullLayout, setFullLayout] = useState<WorkspaceLayout>(() =>
     buildDefaultLayout(DEV_USER_ID),
   );
   const [maximizedWidgetId, setMaximizedWidgetId] = useState<string | null>(
@@ -79,18 +96,21 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const saved = loadLayout(DEV_USER_ID);
     const patched: WorkspaceLayout = {
       ...saved,
-      widgets: saved.widgets.map((w) =>
-        w.type === "placeholder-chat" && !w.config?.sessionId
-          ? { ...w, config: { ...w.config, sessionId: crypto.randomUUID() } }
-          : w,
-      ),
+      screens: saved.screens.map((screen) => ({
+        ...screen,
+        widgets: screen.widgets.map((w) =>
+          w.type === "placeholder-chat" && !w.config?.sessionId
+            ? { ...w, config: { ...w.config, sessionId: crypto.randomUUID() } }
+            : w,
+        ),
+      })),
     };
-    startTransition(() => setLayout(patched));
+    startTransition(() => setFullLayout(patched));
   }, []);
 
   useEffect(() => {
-    saveLayout(layout);
-  }, [layout]);
+    saveLayout(fullLayout);
+  }, [fullLayout]);
 
   useEffect(() => {
     if (!maximizedWidgetId) return;
@@ -104,123 +124,132 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [maximizedWidgetId]);
 
   const updateGrid = useCallback((grid: LayoutItem[]) => {
-    setLayout((prev) => ({ ...prev, grid }));
+    setFullLayout((prev) => updateActiveScreen(prev, (s) => ({ ...s, grid })));
   }, []);
 
   const addWidget = useCallback(
     (widget: WidgetDefinition, position?: Partial<LayoutItem>) => {
-      setLayout((prev) => {
-        const entry = getWidgetRegistryEntry(widget.type);
-        if (
-          entry.singleton &&
-          prev.widgets.some((existing) => existing.type === widget.type)
-        ) {
-          return prev;
-        }
-        if (prev.widgets.find((w) => w.id === widget.id)) return prev;
-        const gridItem = buildWidgetGridItem(
-          widget.id,
-          prev.grid,
-          position,
-          entry.defaultLayout,
-        );
-        return {
-          ...prev,
-          widgets: [...prev.widgets, widget],
-          grid: [...prev.grid, gridItem],
-        };
-      });
+      setFullLayout((prev) =>
+        updateActiveScreen(prev, (s) => {
+          const entry = getWidgetRegistryEntry(widget.type);
+          if (
+            entry.singleton &&
+            s.widgets.some((existing) => existing.type === widget.type)
+          ) {
+            return s;
+          }
+          if (s.widgets.find((w) => w.id === widget.id)) return s;
+          const gridItem = buildWidgetGridItem(
+            widget.id,
+            s.grid,
+            position,
+            entry.defaultLayout,
+          );
+          return {
+            ...s,
+            widgets: [...s.widgets, widget],
+            grid: [...s.grid, gridItem],
+          };
+        }),
+      );
     },
     [],
   );
 
   const addWidgetByType = useCallback((type: WidgetType) => {
-    setLayout((prev) => {
-      const entry = getWidgetRegistryEntry(type);
-      if (
-        entry.singleton &&
-        prev.widgets.some((widget) => widget.type === type)
-      ) {
-        return prev;
-      }
-      const id = nextWidgetId(prev.widgets, entry.idPrefix);
-      const widget: WidgetDefinition = {
-        id,
-        type,
-        title: entry.title,
-        ...(type === "placeholder-chat"
-          ? { config: { sessionId: crypto.randomUUID() } }
-          : {}),
-      };
-      return {
-        ...prev,
-        widgets: [...prev.widgets, widget],
-        grid: [
-          ...prev.grid,
-          buildWidgetGridItem(id, prev.grid, undefined, entry.defaultLayout),
-        ],
-      };
-    });
+    setFullLayout((prev) =>
+      updateActiveScreen(prev, (s) => {
+        const entry = getWidgetRegistryEntry(type);
+        if (
+          entry.singleton &&
+          s.widgets.some((widget) => widget.type === type)
+        ) {
+          return s;
+        }
+        const id = nextWidgetId(s.widgets, entry.idPrefix);
+        const widget: WidgetDefinition = {
+          id,
+          type,
+          title: entry.title,
+          ...(type === "placeholder-chat"
+            ? { config: { sessionId: crypto.randomUUID() } }
+            : {}),
+        };
+        return {
+          ...s,
+          widgets: [...s.widgets, widget],
+          grid: [
+            ...s.grid,
+            buildWidgetGridItem(id, s.grid, undefined, entry.defaultLayout),
+          ],
+        };
+      }),
+    );
   }, []);
 
   const duplicateWidget = useCallback((widgetId: string) => {
-    setLayout((prev) => {
-      const sourceWidget = prev.widgets.find(
-        (widget) => widget.id === widgetId,
-      );
-      if (!sourceWidget) return prev;
-      const entry = getWidgetRegistryEntry(sourceWidget.type);
-      if (entry.singleton) return prev;
-      const sourceGrid = prev.grid.find((item) => item.i === widgetId);
-      const id = nextWidgetId(prev.widgets, entry.idPrefix);
-      const widget: WidgetDefinition = {
-        id,
-        type: sourceWidget.type,
-        title: sourceWidget.title,
-        ...(sourceWidget.type === "placeholder-chat"
-          ? { config: { sessionId: crypto.randomUUID() } }
-          : sourceWidget.config
-            ? { config: { ...sourceWidget.config } }
-            : {}),
-      };
-      const defaults = sourceGrid
-        ? {
-            w: sourceGrid.w,
-            h: sourceGrid.h,
-            minW: sourceGrid.minW,
-            minH: sourceGrid.minH,
-          }
-        : entry.defaultLayout;
-      return {
-        ...prev,
-        widgets: [...prev.widgets, widget],
-        grid: [
-          ...prev.grid,
-          buildWidgetGridItem(id, prev.grid, undefined, defaults),
-        ],
-      };
-    });
+    setFullLayout((prev) =>
+      updateActiveScreen(prev, (s) => {
+        const sourceWidget = s.widgets.find((widget) => widget.id === widgetId);
+        if (!sourceWidget) return s;
+        const entry = getWidgetRegistryEntry(sourceWidget.type);
+        if (entry.singleton) return s;
+        const sourceGrid = s.grid.find((item) => item.i === widgetId);
+        const id = nextWidgetId(s.widgets, entry.idPrefix);
+        const widget: WidgetDefinition = {
+          id,
+          type: sourceWidget.type,
+          title: sourceWidget.title,
+          ...(sourceWidget.type === "placeholder-chat"
+            ? { config: { sessionId: crypto.randomUUID() } }
+            : sourceWidget.config
+              ? { config: { ...sourceWidget.config } }
+              : {}),
+        };
+        const defaults = sourceGrid
+          ? {
+              w: sourceGrid.w,
+              h: sourceGrid.h,
+              minW: sourceGrid.minW,
+              minH: sourceGrid.minH,
+            }
+          : entry.defaultLayout;
+        return {
+          ...s,
+          widgets: [...s.widgets, widget],
+          grid: [
+            ...s.grid,
+            buildWidgetGridItem(id, s.grid, undefined, defaults),
+          ],
+        };
+      }),
+    );
   }, []);
 
   const removeWidget = useCallback((widgetId: string) => {
     setMaximizedWidgetId((current) => (current === widgetId ? null : current));
-    setLayout((prev) => ({
-      ...prev,
-      widgets: prev.widgets.filter((w) => w.id !== widgetId),
-      grid: prev.grid.filter((item) => item.i !== widgetId),
-    }));
+    setFullLayout((prev) =>
+      updateActiveScreen(prev, (s) => ({
+        ...s,
+        widgets: s.widgets.filter((w) => w.id !== widgetId),
+        grid: s.grid.filter((item) => item.i !== widgetId),
+      })),
+    );
   }, []);
 
   const resetLayout = useCallback(() => {
-    const base = buildDefaultLayout(DEV_USER_ID);
     setMaximizedWidgetId(null);
-    setLayout({
+    const base = buildDefaultLayout(DEV_USER_ID);
+    setFullLayout({
       ...base,
-      widgets: base.widgets.map((w) =>
-        w.type === "placeholder-chat"
-          ? { ...w, config: { sessionId: crypto.randomUUID() } }
-          : w,
-      ),
+      screens: base.screens.map((screen) => ({
+        ...screen,
+        widgets: screen.widgets.map((w) =>
+          w.type === "placeholder-chat"
+            ? { ...w, config: { sessionId: crypto.randomUUID() } }
+            : w,
+        ),
+      })),
     });
   }, []);
 
@@ -232,11 +261,41 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setMaximizedWidgetId((current) => (current === widgetId ? null : widgetId));
   }, []);
 
+  const setActiveScreenId = useCallback((id: string) => {
+    setMaximizedWidgetId(null);
+    setFullLayout((prev) => ({ ...prev, activeScreenId: id }));
+  }, []);
+
+  const addScreen = useCallback(() => {
+    setFullLayout((prev) => {
+      const n = prev.screens.length + 1;
+      const newScreen: Screen = {
+        id: `screen-${crypto.randomUUID()}`,
+        name: `Screen ${n}`,
+        widgets: [],
+        grid: [],
+      };
+      return {
+        ...prev,
+        screens: [...prev.screens, newScreen],
+        activeScreenId: newScreen.id,
+      };
+    });
+  }, []);
+
+  const activeScreen =
+    fullLayout.screens.find((s) => s.id === fullLayout.activeScreenId) ??
+    fullLayout.screens[0];
+
   return (
     <WorkspaceContext.Provider
       value={{
         userId: DEV_USER_ID,
-        layout,
+        layout: { widgets: activeScreen.widgets, grid: activeScreen.grid },
+        screens: fullLayout.screens,
+        activeScreenId: fullLayout.activeScreenId,
+        setActiveScreenId,
+        addScreen,
         maximizedWidgetId,
         updateGrid,
         addWidget,

@@ -12,6 +12,7 @@
   --accent-contrast: #ffffff;
   --shadow: rgba(29, 47, 72, 0.12);
   --toolbar-height: 2rem;
+  --workspace-nav-width: 156px;
 }
 
 :root[data-theme="dark"] {
@@ -107,7 +108,7 @@ code {
   border-right: 1px solid var(--panel-border);
   flex-shrink: 0;
   overflow-y: auto;
-  width: 152px;
+  width: var(--workspace-nav-width);
 }
 
 /* Collapsed: thin strip in flex row */
@@ -150,7 +151,7 @@ code {
   max-height: calc(100vh - 120px);
   overflow-y: auto;
   position: fixed;
-  width: 160px;
+  width: var(--workspace-nav-width);
   z-index: 200;
 }
 

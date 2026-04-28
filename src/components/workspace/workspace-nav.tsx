@@ -223,6 +223,9 @@ function collectGroupIds(nodes: NavNode[]): string[] {
 
 const ALL_GROUP_IDS = collectGroupIds(NAV_TREE);
 const ALL_EXPANDED = Object.fromEntries(ALL_GROUP_IDS.map((id) => [id, true]));
+const ALL_COLLAPSED = Object.fromEntries(
+  ALL_GROUP_IDS.map((id) => [id, false]),
+);
 
 // ─── Recursive node renderer ──────────────────────────────────────────────────
 
@@ -314,7 +317,7 @@ export function WorkspaceNav() {
   const [mode, setMode] = useState<NavMode>("docked");
   const [pos, setPos] = useState({ x: 160, y: 80 });
   const [expanded, setExpanded] =
-    useState<Record<string, boolean>>(ALL_EXPANDED);
+    useState<Record<string, boolean>>(ALL_COLLAPSED);
   const [active, setActive] = useState("mkt-eq-overview");
 
   const dragging = useRef(false);

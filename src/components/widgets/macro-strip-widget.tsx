@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiUrl } from "@/lib/api-base";
+import { queryData } from "@/lib/data-query";
 
 interface MacroSeries {
   id: string;
@@ -12,6 +12,7 @@ interface MacroSeries {
 }
 
 interface MacroResponse {
+  shape?: "snapshot";
   results?: MacroSeries[];
   error?: string;
 }
@@ -43,12 +44,11 @@ export function MacroStripWidget({
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          apiUrl(`/api/market/macro?moniker=${encodeURIComponent(moniker)}`),
-        );
-        const body = (await response.json()) as MacroResponse;
-        if (!response.ok)
-          throw new Error(body.error ?? `HTTP ${response.status}`);
+        const body = await queryData<MacroResponse>({
+          moniker,
+          shape: "snapshot",
+          params: { limit: 1 },
+        });
         if (!cancelled) setSeries(body.results ?? []);
       } catch (err) {
         if (!cancelled)

@@ -10,7 +10,7 @@ import {
   type Time,
 } from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { apiUrl } from "@/lib/api-base";
+import { queryData } from "@/lib/data-query";
 
 type RangeKey = "1m" | "3m" | "6m" | "1y" | "5y" | "max";
 type SeriesSymbol =
@@ -27,10 +27,11 @@ interface ApiPoint {
 }
 
 interface SeriesResponse {
+  shape?: "timeseries";
   symbol?: SeriesSymbol;
   label?: string;
   format?: "percent" | "level";
-  source?: string;
+  range?: string;
   results?: ApiPoint[];
   error?: string;
 }
@@ -97,14 +98,11 @@ export function MacroTimeseriesWidget({
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          apiUrl(
-            `/api/market/series?symbol=${symbol}&range=${range}&moniker=${encodeURIComponent(moniker)}`,
-          ),
-        );
-        const body = (await response.json()) as SeriesResponse;
-        if (!response.ok)
-          throw new Error(body.error ?? `HTTP ${response.status}`);
+        const body = await queryData<SeriesResponse>({
+          moniker,
+          shape: "timeseries",
+          params: { symbol, range },
+        });
         const points = (body.results ?? []).map((point) => ({
           time: point.date as Time,
           value: point.value,
@@ -281,7 +279,7 @@ export function MacroTimeseriesWidget({
         <strong>
           {latest === null ? "-" : formatValue(latest, meta?.format)}
         </strong>
-        <span>{meta?.source ? `Source: ${meta.source}` : ""}</span>
+        <span>{meta?.range ?? range}</span>
       </div>
       <div className="macro-timeseries__chart-wrap">
         <div className="macro-timeseries__chart" ref={containerRef} />

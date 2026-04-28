@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { apiUrl } from "@/lib/api-base";
+import { queryData } from "@/lib/data-query";
 
 interface YieldPoint {
   maturity: string;
@@ -9,8 +9,8 @@ interface YieldPoint {
 }
 
 interface YieldResponse {
+  shape?: "curve";
   results?: YieldPoint[];
-  source?: string;
   error?: string;
 }
 
@@ -59,7 +59,6 @@ export function YieldCurveWidget({
   moniker?: string;
 }) {
   const [curve, setCurve] = useState<YieldPoint[]>([]);
-  const [source, setSource] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -70,15 +69,12 @@ export function YieldCurveWidget({
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          apiUrl(`/api/market/yields?moniker=${encodeURIComponent(moniker)}`),
-        );
-        const body = (await response.json()) as YieldResponse;
-        if (!response.ok)
-          throw new Error(body.error ?? `HTTP ${response.status}`);
+        const body = await queryData<YieldResponse>({
+          moniker: `${moniker}/date@latest`,
+          shape: "curve",
+        });
         if (!cancelled) {
           setCurve(body.results ?? []);
-          setSource(body.source ?? null);
         }
       } catch (err) {
         if (!cancelled)
@@ -180,9 +176,6 @@ export function YieldCurveWidget({
           </g>
         ))}
       </svg>
-      <div className="yield-curve__source">
-        {source ? `Source: ${source}` : ""}
-      </div>
     </div>
   );
 }

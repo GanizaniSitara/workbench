@@ -2,6 +2,7 @@ import "./env";
 import cors from "cors";
 import express from "express";
 import { chatRouter } from "./routes/chat";
+import { dataRouter } from "./routes/data";
 import { marketRouter } from "./routes/market";
 import { newsRouter } from "./routes/news";
 
@@ -24,6 +25,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/chat", chatRouter);
+app.use("/api/data", dataRouter);
 app.use("/api/market", marketRouter);
 app.use("/api/news", newsRouter);
 

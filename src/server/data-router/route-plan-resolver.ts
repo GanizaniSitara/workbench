@@ -43,6 +43,18 @@ interface RoutePlanStub {
   policy: RoutePlan["policy"];
 }
 
+const ROUTE_SOURCES = new Set<RouteStep["source"]>([
+  "questdb",
+  "openbb",
+  "refinitiv",
+  "direct-db",
+]);
+
+const FALLBACK_POLICIES = new Set<RoutePlan["policy"]["fallback"]>([
+  "ordered",
+  "none",
+]);
+
 export const ROUTE_PLAN_STUBS: RoutePlanStub[] = [
   {
     id: "fred-series",
@@ -142,9 +154,119 @@ function materializeRoute(
   };
 }
 
-export async function resolveRoutePlan(
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function isRouteRefValue(value: unknown): value is string | number | boolean {
+  return (
+    typeof value === "string" ||
+    typeof value === "boolean" ||
+    (typeof value === "number" && Number.isFinite(value))
+  );
+}
+
+function coerceRoutePlan(
+  value: unknown,
   request: DatasetRequest,
+): RoutePlan | null {
+  if (!isRecord(value) || value.shape !== request.shape) return null;
+  if (!Array.isArray(value.routes) || value.routes.length === 0) return null;
+  if (
+    !isRecord(value.policy) ||
+    !FALLBACK_POLICIES.has(
+      value.policy.fallback as RoutePlan["policy"]["fallback"],
+    )
+  ) {
+    return null;
+  }
+
+  const routes: RouteStep[] = [];
+  for (const route of value.routes) {
+    if (
+      !isRecord(route) ||
+      !ROUTE_SOURCES.has(route.source as RouteStep["source"])
+    ) {
+      return null;
+    }
+
+    if (!isRecord(route.ref)) return null;
+    const refEntries = Object.entries(route.ref);
+    if (!refEntries.every(([, entry]) => isRouteRefValue(entry))) {
+      return null;
+    }
+
+    routes.push({
+      source: route.source as RouteStep["source"],
+      ref: Object.fromEntries(refEntries) as RouteStep["ref"],
+    });
+  }
+
+  const ttlSeconds = value.policy.ttlSeconds;
+  const policy: RoutePlan["policy"] = {
+    fallback: value.policy.fallback as RoutePlan["policy"]["fallback"],
+  };
+  if (typeof ttlSeconds === "number" && Number.isFinite(ttlSeconds)) {
+    policy.ttlSeconds = ttlSeconds;
+  }
+
+  return {
+    moniker:
+      typeof value.moniker === "string" ? value.moniker : request.moniker,
+    shape: request.shape,
+    routes,
+    policy,
+  };
+}
+
+function routePlanUrl(
+  resolverUrl: string,
+  request: DatasetRequest,
+): string | null {
+  try {
+    const url = new URL(resolverUrl);
+    const path = url.pathname.replace(/\/+$/, "");
+    if (!path.endsWith("/route-plan") && !path.endsWith("/route-plans")) {
+      url.pathname = `${path}/route-plan`;
+    } else {
+      url.pathname = path;
+    }
+
+    url.searchParams.set("moniker", request.moniker);
+    url.searchParams.set("shape", request.shape);
+
+    for (const [key, value] of Object.entries(request.params ?? {})) {
+      if (isRouteRefValue(value)) {
+        url.searchParams.set(`param.${key}`, String(value));
+      }
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function resolveLiveRoutePlan(
+  request: DatasetRequest,
+  resolverUrl: string,
 ): Promise<RoutePlan | null> {
+  const url = routePlanUrl(resolverUrl, request);
+  if (!url) return null;
+
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+    });
+    if (response.status === 404) return null;
+    if (!response.ok) return null;
+    return coerceRoutePlan(await response.json(), request);
+  } catch {
+    return null;
+  }
+}
+
+function resolveStubRoutePlan(request: DatasetRequest): RoutePlan | null {
   const canonical = canonicalMoniker(request.moniker);
 
   for (const stub of ROUTE_PLAN_STUBS) {
@@ -164,4 +286,15 @@ export async function resolveRoutePlan(
   }
 
   return null;
+}
+
+export async function resolveRoutePlan(
+  request: DatasetRequest,
+): Promise<RoutePlan | null> {
+  const resolverUrl = process.env.MONIKER_RESOLVER_URL?.trim();
+  if (resolverUrl) {
+    return resolveLiveRoutePlan(request, resolverUrl);
+  }
+
+  return resolveStubRoutePlan(request);
 }

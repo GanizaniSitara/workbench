@@ -89,6 +89,14 @@ code {
   min-height: 0;
 }
 
+.workspace__left-rail {
+  border-right: 1px solid var(--panel-border);
+  display: flex;
+  flex: 0 0 var(--workspace-nav-width);
+  flex-direction: column;
+  min-height: 0;
+}
+
 .workspace__canvas {
   flex: 1;
   min-width: 0;
@@ -105,21 +113,26 @@ code {
 
 /* Docked: normal flex child */
 .workspace-nav--docked {
-  border-right: 1px solid var(--panel-border);
+  border-right: none;
+  border-bottom: 1px solid var(--panel-border);
   flex-shrink: 0;
   overflow-y: auto;
+  min-height: 0;
   width: var(--workspace-nav-width);
+  max-height: 48%;
 }
 
 /* Collapsed: thin strip in flex row */
 .workspace-nav--collapsed {
   align-items: center;
-  border-right: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--panel-border);
+  border-right: none;
   flex-shrink: 0;
   justify-content: flex-start;
   overflow: hidden;
   padding-top: 4px;
-  width: 18px;
+  width: var(--workspace-nav-width);
+  height: 18px;
 }
 
 .workspace-nav__expand-btn {
@@ -333,6 +346,141 @@ code {
 .workspace-nav__leaf--active {
   border-left-color: var(--accent);
   color: var(--accent);
+}
+
+/* ─── Open Moniker rail ─────────────────────────────────────────────── */
+.open-moniker-panel {
+  background: var(--panel-background);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.open-moniker-panel__header {
+  align-items: center;
+  border-bottom: 1px solid var(--panel-border-subtle);
+  display: flex;
+  flex-shrink: 0;
+  height: 1.625rem;
+  justify-content: space-between;
+  padding: 0 0.45rem 0 0.5rem;
+}
+
+.open-moniker-panel__title {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.open-moniker-panel__filter {
+  border-bottom: 1px solid var(--panel-border-subtle);
+  flex-shrink: 0;
+  padding: 0.4rem 0.45rem;
+}
+
+.open-moniker-panel__input {
+  background: var(--panel-background-strong);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.68rem;
+  height: 1.45rem;
+  padding: 0 0.4rem;
+  width: 100%;
+}
+
+.open-moniker-panel__input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.open-moniker-panel__tree {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.25rem 0 0.5rem;
+}
+
+.open-moniker-panel__root,
+.open-moniker-panel__children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.open-moniker-panel__node {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--foreground);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 0.25rem;
+  height: 1.35rem;
+  min-width: 0;
+  padding-bottom: 0;
+  padding-right: 0.35rem;
+  padding-top: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.open-moniker-panel__node:hover {
+  background: var(--panel-border-subtle);
+}
+
+.open-moniker-panel__chevron {
+  color: var(--muted);
+  display: inline-block;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 0.1s ease;
+  width: 0.5rem;
+}
+
+.open-moniker-panel__chevron[data-open="true"] {
+  transform: rotate(90deg);
+}
+
+.open-moniker-panel__chevron[data-visible="false"] {
+  opacity: 0;
+}
+
+.open-moniker-panel__node-name {
+  flex: 1;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.64rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.open-moniker-panel__source {
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 0.53rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0.08rem 0.24rem;
+  text-transform: uppercase;
+}
+
+.open-moniker-panel__state {
+  color: var(--muted);
+  font-size: 0.68rem;
+  padding: 0.5rem;
 }
 
 /* ─── Toolbar ────────────────────────────────────────────────────────── */

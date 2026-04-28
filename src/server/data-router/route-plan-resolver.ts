@@ -371,10 +371,33 @@ function resolveStubRoutePlan(request: DatasetRequest): RoutePlan | null {
 export async function resolveRoutePlan(
   request: DatasetRequest,
 ): Promise<RoutePlan | null> {
+  return (await resolveRoutePlanDiagnostics(request)).plan;
+}
+
+export interface RoutePlanDiagnostics {
+  plan: RoutePlan | null;
+  mode: "live" | "stub" | "stub-fallback" | "unavailable";
+  resolverUrl?: string;
+}
+
+export async function resolveRoutePlanDiagnostics(
+  request: DatasetRequest,
+): Promise<RoutePlanDiagnostics> {
   const resolverUrl = process.env.MONIKER_RESOLVER_URL?.trim();
   if (resolverUrl) {
-    return resolveLiveRoutePlan(request, resolverUrl);
+    const livePlan = await resolveLiveRoutePlan(request, resolverUrl);
+    if (livePlan) {
+      return { plan: livePlan, mode: "live", resolverUrl };
+    }
+
+    const stubPlan = resolveStubRoutePlan(request);
+    return {
+      plan: stubPlan,
+      mode: stubPlan ? "stub-fallback" : "unavailable",
+      resolverUrl,
+    };
   }
 
-  return resolveStubRoutePlan(request);
+  const stubPlan = resolveStubRoutePlan(request);
+  return { plan: stubPlan, mode: stubPlan ? "stub" : "unavailable" };
 }

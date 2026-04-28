@@ -201,7 +201,7 @@ describe("resolveRoutePlan", () => {
     });
   });
 
-  it("does not silently fall back to local stubs when the live resolver is configured", async () => {
+  it("falls back to local stubs when the live resolver returns 404", async () => {
     process.env.MONIKER_RESOLVER_URL = "http://moniker.test";
 
     globalThis.fetch = async () =>
@@ -212,7 +212,15 @@ describe("resolveRoutePlan", () => {
       shape: "timeseries",
     });
 
-    expect(plan).toBeNull();
+    expect(plan?.routes.map((route) => route.source)).toEqual([
+      "questdb",
+      "openbb",
+    ]);
+    expect(plan?.routes[0].ref).toEqual({
+      table: "fred_series",
+      symbol: "DGS10",
+      limit: 1,
+    });
   });
 });
 
@@ -277,7 +285,7 @@ describe("queryData", () => {
     if (result.shape !== "snapshot") {
       throw new Error("Expected snapshot result");
     }
-    expect(result.results).toHaveLength(7);
+    expect(result.results).toHaveLength(8);
     expect(result.results.find((item) => item.id === "DGS10")).toEqual({
       id: "DGS10",
       label: "10Y Treasury",

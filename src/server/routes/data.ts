@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { DataQueryError, queryData } from "../data-router/query-service";
 import type { DatasetRequest, DatasetShape } from "../data-router/route-plan";
+import { resolveRoutePlanDiagnostics } from "../data-router/route-plan-resolver";
 
 const DATASET_SHAPES = new Set<DatasetShape>([
   "snapshot",
@@ -72,5 +73,67 @@ dataRouter.post("/query", async (req, res) => {
     }
 
     return res.status(500).json({ error: "data query failed" });
+  }
+});
+
+dataRouter.get("/route-plan", async (req, res) => {
+  const moniker = req.query.moniker;
+  const shape = req.query.shape;
+
+  if (typeof moniker !== "string" || !moniker.trim()) {
+    return res.status(400).json({ error: "moniker is required" });
+  }
+
+  if (typeof shape !== "string" || !DATASET_SHAPES.has(shape as DatasetShape)) {
+    return res.status(400).json({ error: "shape is invalid" });
+  }
+
+  try {
+    const diagnostics = await resolveRoutePlanDiagnostics({
+      moniker,
+      shape: shape as DatasetShape,
+    });
+
+    if (!diagnostics.plan) {
+      return res.status(404).json({
+        error: "route plan unavailable",
+        mode: diagnostics.mode,
+        resolverUrl: diagnostics.resolverUrl,
+      });
+    }
+
+    return res.json(diagnostics);
+  } catch {
+    return res.status(500).json({ error: "route plan diagnostics failed" });
+  }
+});
+
+dataRouter.get("/moniker-tree", async (_req, res) => {
+  const resolverUrl = process.env.MONIKER_RESOLVER_URL?.trim();
+  if (!resolverUrl) {
+    return res
+      .status(503)
+      .json({ error: "MONIKER_RESOLVER_URL is not configured" });
+  }
+
+  try {
+    const url = new URL(resolverUrl);
+    url.pathname = `${url.pathname.replace(/\/+$/, "")}/tree`;
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    const tree = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: "Open Moniker tree unavailable",
+        detail: tree,
+      });
+    }
+
+    return res.json({
+      resolverUrl,
+      tree,
+    });
+  } catch {
+    return res.status(502).json({ error: "Open Moniker tree unavailable" });
   }
 });

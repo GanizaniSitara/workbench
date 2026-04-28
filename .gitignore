@@ -35,6 +35,9 @@ yarn-error.log*
 .pnpm-debug.log*
 *.log
 
+# local development services
+.local-memory/
+
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example

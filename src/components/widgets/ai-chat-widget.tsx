@@ -2,16 +2,24 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { apiUrl } from "@/lib/api-base";
-
-const MEMORY_API = import.meta.env.VITE_MEMORY_API_BASE_URL?.trim() ?? "";
-const USER_ID = import.meta.env.VITE_MEMORY_USER_ID?.trim() ?? "workbench";
-const NAMESPACE = "workbench.chat";
+import {
+  buildMemoryPrompt,
+  CHAT_NAMESPACE,
+  MEMORY_API,
+  MEMORY_USER_ID,
+  retrieveUserContextForPrompt,
+} from "@/lib/user-context";
 
 interface ChatMessage {
   id?: string;
   role: "user" | "assistant";
   content: string;
   created_at?: string;
+}
+
+interface ChatApiMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
 }
 
 interface MemoryRecord {
@@ -40,8 +48,8 @@ async function fetchHistory(sessionId: string): Promise<ChatMessage[]> {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       text: "",
-      user_id: { eq: USER_ID },
-      namespace: { eq: NAMESPACE },
+      user_id: { eq: MEMORY_USER_ID },
+      namespace: { eq: CHAT_NAMESPACE },
       session_id: { eq: sessionId },
       memory_type: { eq: "message" },
       limit: 100,
@@ -81,8 +89,8 @@ async function persistMessage(
         {
           id: crypto.randomUUID(),
           text: content,
-          user_id: USER_ID,
-          namespace: NAMESPACE,
+          user_id: MEMORY_USER_ID,
+          namespace: CHAT_NAMESPACE,
           session_id: sessionId,
           memory_type: "message",
           topics: [role],
@@ -119,7 +127,7 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
     if (!content || isSending) return;
 
     const userMsg: ChatMessage = { role: "user", content };
-    const chatHistory = [...messages, userMsg].map(
+    const chatHistory: ChatApiMessage[] = [...messages, userMsg].map(
       ({ role, content: messageContent }) => ({
         role,
         content: messageContent,
@@ -132,10 +140,19 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
 
     try {
       await persistMessage(sessionId, "user", content);
+      const contextFacts = await retrieveUserContextForPrompt(
+        MEMORY_USER_ID,
+        content,
+      );
+      const memoryPrompt = buildMemoryPrompt(contextFacts);
+      const messagesForModel: ChatApiMessage[] = memoryPrompt
+        ? [{ role: "system", content: memoryPrompt }, ...chatHistory]
+        : chatHistory;
+
       const response = await fetch(apiUrl("/api/chat"), {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ messages: chatHistory }),
+        body: JSON.stringify({ messages: messagesForModel }),
       });
       const body = (await response.json()) as ChatApiResponse;
       if (!response.ok)

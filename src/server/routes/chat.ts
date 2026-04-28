@@ -17,6 +17,11 @@ interface OllamaResponse {
   error?: string;
 }
 
+function ollamaTimeoutMs(): number {
+  const value = Number.parseInt(process.env.OLLAMA_TIMEOUT_MS ?? "", 10);
+  return Number.isFinite(value) && value > 0 ? value : 180_000;
+}
+
 function isValidMessage(message: unknown): message is ChatMessage {
   if (!message || typeof message !== "object") return false;
   const candidate = message as Partial<ChatMessage>;
@@ -55,7 +60,7 @@ chatRouter.post("/", async (req, res) => {
         messages,
         stream: false,
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(ollamaTimeoutMs()),
     });
 
     const ollama = (await response
@@ -77,6 +82,12 @@ chatRouter.post("/", async (req, res) => {
       },
     });
   } catch (err) {
+    if (err instanceof DOMException && err.name === "TimeoutError") {
+      return res.status(504).json({
+        error: `Ollama timed out after ${Math.round(ollamaTimeoutMs() / 1000)}s loading or generating with ${model}.`,
+      });
+    }
+
     return res.status(502).json({
       error:
         err instanceof Error

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DEV_USER_ID } from "@/providers/workspace-provider";
+import { UserContextDrawer } from "@/components/workspace/user-context-drawer";
 
 // Placeholder until Okta lands
 const STUB_USER = {
@@ -12,6 +13,7 @@ const STUB_USER = {
 
 const MENU_ITEMS = [
   { id: "profile", label: "Profile" },
+  { id: "context", label: "Context" },
   { id: "settings", label: "Settings" },
   { id: "divider" },
   { id: "signout", label: "Sign out" },
@@ -19,6 +21,7 @@ const MENU_ITEMS = [
 
 export function UserProfile() {
   const [open, setOpen] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -34,52 +37,64 @@ export function UserProfile() {
   }, [open]);
 
   return (
-    <div className="user-profile" ref={ref}>
-      <button
-        className={`user-profile__trigger${open ? " user-profile__trigger--open" : ""}`}
-        onClick={() => setOpen((v) => !v)}
-        type="button"
-        aria-haspopup="true"
-        aria-expanded={open}
-        aria-label={`User menu for ${STUB_USER.name}`}
-      >
-        <span className="user-profile__avatar" aria-hidden="true">
-          {STUB_USER.initials}
-        </span>
-        <span className="user-profile__name">{STUB_USER.name}</span>
-      </button>
+    <>
+      <div className="user-profile" ref={ref}>
+        <button
+          className={`user-profile__trigger${open ? " user-profile__trigger--open" : ""}`}
+          onClick={() => setOpen((v) => !v)}
+          type="button"
+          aria-haspopup="true"
+          aria-expanded={open}
+          aria-label={`User menu for ${STUB_USER.name}`}
+        >
+          <span className="user-profile__avatar" aria-hidden="true">
+            {STUB_USER.initials}
+          </span>
+          <span className="user-profile__name">{STUB_USER.name}</span>
+        </button>
 
-      {open && (
-        <div className="user-profile__dropdown" role="menu">
-          <div className="user-profile__dropdown-header">
-            <span className="user-profile__dropdown-name">
-              {STUB_USER.name}
-            </span>
-            <span className="user-profile__dropdown-meta">
-              {STUB_USER.role} · {DEV_USER_ID}
-            </span>
-          </div>
-          <div className="user-profile__dropdown-divider" />
-          {MENU_ITEMS.map((item) => {
-            if (item.id === "divider") {
+        {open && (
+          <div className="user-profile__dropdown" role="menu">
+            <div className="user-profile__dropdown-header">
+              <span className="user-profile__dropdown-name">
+                {STUB_USER.name}
+              </span>
+              <span className="user-profile__dropdown-meta">
+                {STUB_USER.role} · {DEV_USER_ID}
+              </span>
+            </div>
+            <div className="user-profile__dropdown-divider" />
+            {MENU_ITEMS.map((item) => {
+              if (item.id === "divider") {
+                return (
+                  <div
+                    key="divider"
+                    className="user-profile__dropdown-divider"
+                  />
+                );
+              }
               return (
-                <div key="divider" className="user-profile__dropdown-divider" />
+                <button
+                  key={item.id}
+                  className={`user-profile__menu-item${item.id === "signout" ? " user-profile__menu-item--danger" : ""}`}
+                  onClick={() => {
+                    setOpen(false);
+                    if (item.id === "context") setContextOpen(true);
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  {"label" in item ? item.label : null}
+                </button>
               );
-            }
-            return (
-              <button
-                key={item.id}
-                className={`user-profile__menu-item${item.id === "signout" ? " user-profile__menu-item--danger" : ""}`}
-                onClick={() => setOpen(false)}
-                role="menuitem"
-                type="button"
-              >
-                {"label" in item ? item.label : null}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+            })}
+          </div>
+        )}
+      </div>
+      <UserContextDrawer
+        isOpen={contextOpen}
+        onClose={() => setContextOpen(false)}
+      />
+    </>
   );
 }

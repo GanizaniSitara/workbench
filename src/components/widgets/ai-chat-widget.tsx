@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import { ChatMessageContent } from "@/components/widgets/chat-message-content";
 import { apiUrl } from "@/lib/api-base";
 import {
   buildMemoryPrompt,
@@ -172,13 +173,25 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
     }
   }
 
+  function handleInputKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing
+    )
+      return;
+
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  }
+
   return (
     <div className="ai-chat">
       <div className="ai-chat__messages">
         {isLoading && <div className="ai-chat__state">Loading…</div>}
         {!isLoading && messages.length === 0 && (
           <div className="ai-chat__message ai-chat__message--assistant">
-            Ask about the current macro surface or a chart workflow.
+            <ChatMessageContent content="Ask about the current macro surface or a chart workflow." />
           </div>
         )}
         {messages.map((msg, i) => (
@@ -186,7 +199,7 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
             className={`ai-chat__message ai-chat__message--${msg.role}`}
             key={msg.id ?? `${msg.role}-${i}`}
           >
-            {msg.content}
+            <ChatMessageContent content={msg.content} />
           </div>
         ))}
         {error && <div className="ai-chat__error">{error}</div>}
@@ -196,6 +209,7 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
         <textarea
           className="ai-chat__input"
           disabled={isLoading}
+          onKeyDown={handleInputKeyDown}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Message"
           ref={inputRef}

@@ -27,10 +27,14 @@
     "ag-grid-react": "^34.3.1",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "katex": "^0.16.45",
+    "lightweight-charts": "^5.0.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-grid-layout": "^1.5.2",
-    "lightweight-charts": "^5.0.9"
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

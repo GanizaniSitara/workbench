@@ -132,6 +132,7 @@ export function EquityChartWidget({
         textColor: initial.muted,
         fontFamily: "Arial, Helvetica, sans-serif",
         fontSize: 11,
+        attributionLogo: false,
       },
       grid: {
         horzLines: { color: initial.panelBorder },

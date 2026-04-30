@@ -380,12 +380,11 @@ code {
   min-height: 0;
 }
 
-.open-moniker-panel__chevron {
+.open-moniker-panel__header-chevron {
   color: var(--muted);
   display: inline-block;
   font-size: 0.8rem;
   font-weight: 400;
-  padding-right: 0.5rem;
   transition: transform 0.15s;
 }
 

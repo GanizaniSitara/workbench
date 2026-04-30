@@ -148,7 +148,7 @@ export function OpenMonikerPanel() {
       >
         <span className="open-moniker-panel__title">Open Moniker</span>
         <span
-          className="open-moniker-panel__chevron"
+          className="open-moniker-panel__header-chevron"
           style={{ transform: `rotate(${collapsed ? 0 : 90}deg)` }}
         >
           ›

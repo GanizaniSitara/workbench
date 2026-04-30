@@ -8,23 +8,44 @@ import { WorkspaceLinksPanel } from "@/components/workspace/workspace-links-pane
 const MIN_RAIL_WIDTH = 120;
 const MAX_RAIL_WIDTH = 480;
 const DEFAULT_RAIL_WIDTH = 200;
+const DEFAULT_LINKS_HEIGHT = 180;
+const MIN_LINKS_HEIGHT = 60;
+const MIN_MONIKER_HEIGHT = 80;
 
 export default function App() {
   const [railWidth, setRailWidth] = useState(DEFAULT_RAIL_WIDTH);
-  const dragging = useRef(false);
+  const [linksHeight, setLinksHeight] = useState(DEFAULT_LINKS_HEIGHT);
+
+  const draggingH = useRef(false);
+  const draggingV = useRef(false);
   const startX = useRef(0);
+  const startY = useRef(0);
   const startWidth = useRef(0);
+  const startLinksH = useRef(0);
+  const railRef = useRef<HTMLElement>(null);
 
   const onMouseMove = useCallback((e: MouseEvent) => {
-    if (!dragging.current) return;
-    const delta = e.clientX - startX.current;
-    setRailWidth(
-      Math.min(MAX_RAIL_WIDTH, Math.max(MIN_RAIL_WIDTH, startWidth.current + delta)),
-    );
+    if (draggingH.current) {
+      const delta = e.clientX - startX.current;
+      setRailWidth(
+        Math.min(MAX_RAIL_WIDTH, Math.max(MIN_RAIL_WIDTH, startWidth.current + delta)),
+      );
+    }
+    if (draggingV.current) {
+      const delta = e.clientY - startY.current;
+      const railH = railRef.current?.clientHeight ?? 600;
+      setLinksHeight(
+        Math.min(
+          railH - MIN_MONIKER_HEIGHT,
+          Math.max(MIN_LINKS_HEIGHT, startLinksH.current + delta),
+        ),
+      );
+    }
   }, []);
 
   const onMouseUp = useCallback(() => {
-    dragging.current = false;
+    draggingH.current = false;
+    draggingV.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   }, []);
@@ -38,10 +59,10 @@ export default function App() {
     };
   }, [onMouseMove, onMouseUp]);
 
-  const onResizerMouseDown = useCallback(
+  const onHResizerDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      dragging.current = true;
+      draggingH.current = true;
       startX.current = e.clientX;
       startWidth.current = railWidth;
       document.body.style.cursor = "col-resize";
@@ -50,17 +71,41 @@ export default function App() {
     [railWidth],
   );
 
+  const onVResizerDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      draggingV.current = true;
+      startY.current = e.clientY;
+      startLinksH.current = linksHeight;
+      document.body.style.cursor = "row-resize";
+      document.body.style.userSelect = "none";
+    },
+    [linksHeight],
+  );
+
   return (
     <Providers>
       <div className="workspace">
         <WorkspaceToolbar />
         <div className="workspace__body">
-          <aside className="workspace__left-rail" style={{ flex: `0 0 ${railWidth}px` }}>
-            <WorkspaceLinksPanel />
-            <OpenMonikerPanel />
+          <aside
+            className="workspace__left-rail"
+            ref={railRef}
+            style={{ flex: `0 0 ${railWidth}px` }}
+          >
+            <div className="workspace__rail-links" style={{ height: linksHeight }}>
+              <WorkspaceLinksPanel />
+            </div>
+            <div
+              className="workspace__vert-resizer"
+              onMouseDown={onVResizerDown}
+            />
+            <div className="workspace__rail-moniker">
+              <OpenMonikerPanel />
+            </div>
             <div
               className="workspace__left-rail-resizer"
-              onMouseDown={onResizerMouseDown}
+              onMouseDown={onHResizerDown}
             />
           </aside>
           <main className="workspace__canvas">

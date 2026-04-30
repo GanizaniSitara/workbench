@@ -93,14 +93,6 @@ code {
 .workspace__left-rail {
   border-right: 1px solid var(--panel-border);
   display: flex;
-  flex: 0 0 calc(var(--workspace-nav-width) + var(--workspace-links-width));
-  flex-direction: row;
-  min-height: 0;
-}
-
-.workspace__nav-col {
-  border-right: 1px solid var(--panel-border);
-  display: flex;
   flex: 0 0 var(--workspace-nav-width);
   flex-direction: column;
   min-height: 0;
@@ -616,10 +608,11 @@ code {
 /* ─── Links panel ────────────────────────────────────────────────────── */
 .workspace-links-panel {
   background: var(--panel-background);
+  border-top: 1px solid var(--panel-border);
   display: flex;
-  flex: 0 0 var(--workspace-links-width);
+  flex-shrink: 0;
   flex-direction: column;
-  min-height: 0;
+  max-height: 45%;
   overflow-y: auto;
 }
 

@@ -108,6 +108,74 @@ dataRouter.get("/route-plan", async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Symbol search — used by the overlay chart autocomplete
+// ---------------------------------------------------------------------------
+
+interface SearchResult {
+  symbol: string;
+  label: string;
+  kind: "macro" | "equity";
+}
+
+const FRED_CATALOG: SearchResult[] = [
+  { symbol: "DGS1MO",   label: "1-Month Treasury Yield",           kind: "macro" },
+  { symbol: "DGS3MO",   label: "3-Month Treasury Yield",           kind: "macro" },
+  { symbol: "DGS6MO",   label: "6-Month Treasury Yield",           kind: "macro" },
+  { symbol: "DGS1",     label: "1-Year Treasury Yield",            kind: "macro" },
+  { symbol: "DGS2",     label: "2-Year Treasury Yield",            kind: "macro" },
+  { symbol: "DGS5",     label: "5-Year Treasury Yield",            kind: "macro" },
+  { symbol: "DGS10",    label: "10-Year Treasury Yield",           kind: "macro" },
+  { symbol: "DGS20",    label: "20-Year Treasury Yield",           kind: "macro" },
+  { symbol: "DGS30",    label: "30-Year Treasury Yield",           kind: "macro" },
+  { symbol: "T10Y2Y",   label: "10Y-2Y Treasury Spread",           kind: "macro" },
+  { symbol: "FEDFUNDS", label: "Effective Federal Funds Rate",     kind: "macro" },
+  { symbol: "UNRATE",   label: "Unemployment Rate",                kind: "macro" },
+  { symbol: "CPIAUCSL", label: "CPI All Items (FRED)",             kind: "macro" },
+];
+
+dataRouter.get("/search", async (req, res) => {
+  const raw = req.query.q;
+  const q = typeof raw === "string" ? raw.trim().toUpperCase() : "";
+  if (!q || q.length < 1) {
+    return res.json({ results: [] });
+  }
+
+  // FRED matches — filter client-side from catalog
+  const fredMatches = FRED_CATALOG.filter(
+    (item) =>
+      item.symbol.includes(q) ||
+      item.label.toUpperCase().includes(q),
+  ).slice(0, 6);
+
+  // Equity search via OpenBB — optional, skip if not configured
+  let equityMatches: SearchResult[] = [];
+  const openbbBase = process.env.OPENBB_BASE_URL?.trim();
+  if (openbbBase) {
+    try {
+      const url = `${openbbBase}/api/v1/equity/search?query=${encodeURIComponent(q)}&provider=sec`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(4_000) });
+      if (response.ok) {
+        const body = await response.json() as { results?: Array<{ symbol?: string; name?: string }> };
+        equityMatches = (body.results ?? [])
+          .filter((r) => r.symbol)
+          .slice(0, 8)
+          .map((r) => ({
+            symbol: String(r.symbol).toUpperCase(),
+            label: r.name ?? String(r.symbol),
+            kind: "equity" as const,
+          }));
+      }
+    } catch {
+      // OpenBB unavailable — equity results stay empty
+    }
+  }
+
+  // FRED results first, then equity
+  const results: SearchResult[] = [...fredMatches, ...equityMatches].slice(0, 12);
+  return res.json({ results });
+});
+
 dataRouter.get("/moniker-tree", async (_req, res) => {
   const resolverUrl = process.env.MONIKER_RESOLVER_URL?.trim();
   if (!resolverUrl) {

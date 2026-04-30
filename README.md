@@ -6,7 +6,7 @@ Plain React + standalone API scaffold for **WBN-020**: an OpenBB-Workspace-style
 
 - **Frontend:** React 19 + Vite
 - **Backend:** Express + TypeScript
-- **Package manager:** Bun
+- **Package manager:** npm
 - **Import alias:** `@/*` -> `src/*`
 
 The workspace UI remains in the frontend. Market, news, and chat endpoints now live in a separate API service under `src/server`.
@@ -28,7 +28,7 @@ React widgets
 
 Open Moniker is the routing brain: it decides which source or ordered source list backs a moniker. The data router is intentionally dumb and horizontally scalable: it executes route plans, calls adapters, normalizes responses, and returns datasets.
 
-Until live Open Moniker route-plan reads are wired in, `src/server/data-router/route-plan-resolver.ts` exposes an explicit route-plan stub for current market datasets. That stub owns provider order, cache preference, and ordered fallback policy; market routes stay thin and source-agnostic apart from adapter registration.
+When `MONIKER_RESOLVER_URL` is configured, `src/server/data-router/route-plan-resolver.ts` reads live route plans from Open Moniker at `GET <url>/route-plan?moniker=<path>&shape=<shape>`. When it is unset, the API uses an explicit route-plan stub for current market datasets. In both modes, unmapped monikers return `"data unavailable"` with no silent provider fallback.
 
 Detailed data-plane planning notes are kept outside this public repository.
 
@@ -37,13 +37,13 @@ Detailed data-plane planning notes are kept outside this public repository.
 Install dependencies:
 
 ```powershell
-bun install
+npm install
 ```
 
 Run the frontend and API together:
 
 ```powershell
-bun run dev
+npm run dev
 ```
 
 - App: [http://127.0.0.1:3000](http://127.0.0.1:3000)
@@ -62,13 +62,14 @@ QuestDB, Ollama, and chat-memory services are optional. Without QuestDB, market 
 
 | Script                 | Purpose                                             |
 | ---------------------- | --------------------------------------------------- |
-| `bun run dev`          | Run the Vite frontend and API server together       |
-| `bun run build`        | Build both the frontend bundle and API output       |
-| `bun run start`        | Start the built API plus Vite preview               |
-| `bun run lint`         | Run ESLint across app, server, and Playwright files |
-| `bun run typecheck`    | Type-check frontend and backend TS configs          |
-| `bun run format:check` | Check formatting                                    |
-| `bun run test:e2e`     | Run Playwright end-to-end tests                     |
+| `npm run dev`          | Run the Vite frontend and API server together       |
+| `npm run build`        | Build both the frontend assets and API output       |
+| `npm run start`        | Start the built API plus Vite preview               |
+| `npm run lint`         | Run ESLint across app, server, and Playwright files |
+| `npm run typecheck`    | Type-check frontend and backend TS configs          |
+| `npm run format:check` | Check formatting                                    |
+| `npm run test:unit`    | Run Vitest unit tests                               |
+| `npm run test:e2e`     | Run Playwright end-to-end tests                     |
 
 ## Environment
 
@@ -81,6 +82,7 @@ The API service uses:
 - `FRONTEND_ORIGIN` - optional comma-separated CORS allowlist
 - `OPENBB_BASE_URL` - OpenBB-compatible API base URL for market data and preferred news
 - `QUESTDB_URL` - optional QuestDB HTTP endpoint for cache-first market data
+- `MONIKER_RESOLVER_URL` - optional Open Moniker route-plan resolver; unset uses local route-plan stubs
 - `OLLAMA_BASE_URL` - optional Ollama endpoint for `/api/chat`
 - `OLLAMA_MODEL` - optional Ollama model name for `/api/chat`
 

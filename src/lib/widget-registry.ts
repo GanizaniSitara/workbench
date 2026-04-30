@@ -92,6 +92,15 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     defaultLayout: { w: 8, h: 10, minW: 4, minH: 4 },
   },
   {
+    type: "overlay-chart",
+    title: "Overlay Chart",
+    description: "Compare any tickers or macro series as % change on one chart.",
+    category: "Markets",
+    idPrefix: "overlay",
+    supportedDataKinds: ["equity", "macro", "rates"],
+    defaultLayout: { w: 8, h: 10, minW: 4, minH: 4 },
+  },
+  {
     type: "placeholder-chart",
     title: "Chart",
     description: "Placeholder price chart slot for WBN-005.",

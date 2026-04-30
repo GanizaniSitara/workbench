@@ -13,6 +13,7 @@
   --shadow: rgba(29, 47, 72, 0.12);
   --toolbar-height: 2rem;
   --workspace-nav-width: 156px;
+  --workspace-links-width: 130px;
 }
 
 :root[data-theme="dark"] {
@@ -90,6 +91,14 @@ code {
 }
 
 .workspace__left-rail {
+  border-right: 1px solid var(--panel-border);
+  display: flex;
+  flex: 0 0 calc(var(--workspace-nav-width) + var(--workspace-links-width));
+  flex-direction: row;
+  min-height: 0;
+}
+
+.workspace__nav-col {
   border-right: 1px solid var(--panel-border);
   display: flex;
   flex: 0 0 var(--workspace-nav-width);
@@ -602,6 +611,71 @@ code {
   right: -0.1rem;
   top: -0.05rem;
   width: 0.55rem;
+}
+
+/* ─── Links panel ────────────────────────────────────────────────────── */
+.workspace-links-panel {
+  background: var(--panel-background);
+  display: flex;
+  flex: 0 0 var(--workspace-links-width);
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.workspace-links-panel__header {
+  border-bottom: 1px solid var(--panel-border);
+  color: var(--muted);
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.5rem;
+  text-transform: uppercase;
+}
+
+.workspace-links-panel__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.1rem;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+}
+
+.workspace-links-panel__group {
+  display: flex;
+  flex-direction: column;
+  padding: 0.15rem 0;
+}
+
+.workspace-links-panel__group + .workspace-links-panel__group {
+  border-top: 1px solid var(--panel-border-subtle);
+}
+
+.workspace-links-panel__group-heading {
+  color: var(--muted);
+  font-size: 0.53rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.5rem 0.1rem;
+  text-transform: uppercase;
+}
+
+.workspace-links-panel__link {
+  color: var(--foreground);
+  display: block;
+  font-size: 0.68rem;
+  overflow: hidden;
+  padding: 0.15rem 0.5rem;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-links-panel__link:hover {
+  background: var(--panel-background-strong);
+  color: var(--accent);
 }
 
 /* ─── User profile ───────────────────────────────────────────────────── */

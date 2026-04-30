@@ -1,0 +1,60 @@
+const LINK_GROUPS: Array<{
+  heading: string;
+  links: Array<{ label: string; url: string }>;
+}> = [
+  {
+    heading: "Markets",
+    links: [
+      { label: "Bloomberg", url: "https://www.bloomberg.com" },
+      { label: "FT", url: "https://www.ft.com" },
+      { label: "Reuters", url: "https://www.reuters.com" },
+      { label: "WSJ", url: "https://www.wsj.com" },
+    ],
+  },
+  {
+    heading: "Data",
+    links: [
+      { label: "FRED", url: "https://fred.stlouisfed.org" },
+      { label: "Trading Econ", url: "https://tradingeconomics.com" },
+      { label: "Investing.com", url: "https://www.investing.com" },
+      { label: "Yahoo Finance", url: "https://finance.yahoo.com" },
+    ],
+  },
+  {
+    heading: "Fixed Income",
+    links: [
+      { label: "DMO", url: "https://www.dmo.gov.uk" },
+      { label: "BoE", url: "https://www.bankofengland.co.uk" },
+      { label: "ECB", url: "https://www.ecb.europa.eu" },
+      { label: "Fed", url: "https://www.federalreserve.gov" },
+    ],
+  },
+];
+
+export function WorkspaceLinksPanel() {
+  return (
+    <div className="workspace-links-panel">
+      <div className="workspace-links-panel__header">Links</div>
+      <div className="workspace-links-panel__body">
+        {LINK_GROUPS.map((group) => (
+          <div className="workspace-links-panel__group" key={group.heading}>
+            <div className="workspace-links-panel__group-heading">
+              {group.heading}
+            </div>
+            {group.links.map((link) => (
+              <a
+                className="workspace-links-panel__link"
+                href={link.url}
+                key={link.url}
+                rel="noreferrer"
+                target="_blank"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

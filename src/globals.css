@@ -114,32 +114,6 @@ code {
   opacity: 0.4;
 }
 
-.workspace__rail-links {
-  flex-shrink: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.workspace__rail-moniker {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.workspace__vert-resizer {
-  background: var(--panel-border);
-  cursor: row-resize;
-  flex-shrink: 0;
-  height: 4px;
-  transition: background 0.15s;
-}
-
-.workspace__vert-resizer:hover,
-.workspace__vert-resizer:active {
-  background: var(--accent);
-}
 
 .workspace__canvas {
   flex: 1;
@@ -401,6 +375,42 @@ code {
   min-height: 0;
 }
 
+.open-moniker-panel--collapsed {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.open-moniker-panel__collapse-btn {
+  align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  justify-content: space-between;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.open-moniker-panel__collapse-btn:hover .open-moniker-panel__title {
+  color: var(--foreground);
+}
+
+.open-moniker-panel__chevron {
+  color: var(--muted);
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  padding-right: 0.5rem;
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+
+.open-moniker-panel__chevron--open {
+  transform: rotate(270deg);
+}
+
 .open-moniker-panel__header {
   align-items: center;
   border-bottom: 1px solid var(--panel-border-subtle);
@@ -653,19 +663,42 @@ code {
   background: var(--panel-background);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .workspace-links-panel__header {
+  align-items: center;
+  background: transparent;
+  border: none;
   border-bottom: 1px solid var(--panel-border);
   color: var(--muted);
-  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
   font-size: 0.6rem;
   font-weight: 700;
+  justify-content: space-between;
   letter-spacing: 0.08em;
   padding: 0.3rem 0.5rem;
+  text-align: left;
   text-transform: uppercase;
+  width: 100%;
+}
+
+.workspace-links-panel__header:hover {
+  color: var(--foreground);
+}
+
+.workspace-links-panel__chevron {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+
+.workspace-links-panel__chevron--open {
+  transform: rotate(270deg);
 }
 
 .workspace-links-panel__body {

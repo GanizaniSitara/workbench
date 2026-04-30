@@ -116,6 +116,7 @@ function MonikerNode({
 }
 
 export function OpenMonikerPanel() {
+  const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const treeQuery = useQuery({
@@ -136,40 +137,56 @@ export function OpenMonikerPanel() {
   }
 
   return (
-    <section className="open-moniker-panel" aria-label="Open Moniker catalog">
+    <section
+      className={`open-moniker-panel${collapsed ? " open-moniker-panel--collapsed" : ""}`}
+      aria-label="Open Moniker catalog"
+    >
       <header className="open-moniker-panel__header">
-        <span className="open-moniker-panel__title">Open Moniker</span>
+        <button
+          className="open-moniker-panel__collapse-btn"
+          onClick={() => setCollapsed((c) => !c)}
+          type="button"
+        >
+          <span className="open-moniker-panel__title">Open Moniker</span>
+          <span className={`open-moniker-panel__chevron${collapsed ? "" : " open-moniker-panel__chevron--open"}`}>
+            ›
+          </span>
+        </button>
       </header>
 
-      <div className="open-moniker-panel__filter">
-        <input
-          aria-label="Filter monikers"
-          className="open-moniker-panel__input"
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Filter monikers"
-          value={query}
-        />
-      </div>
+      {!collapsed && (
+        <>
+          <div className="open-moniker-panel__filter">
+            <input
+              aria-label="Filter monikers"
+              className="open-moniker-panel__input"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filter monikers"
+              value={query}
+            />
+          </div>
 
-      <div className="open-moniker-panel__tree">
-        {treeQuery.isError ? (
-          <div className="open-moniker-panel__state">Tree unavailable</div>
-        ) : treeQuery.isLoading ? (
-          <div className="open-moniker-panel__state">Loading catalog</div>
-        ) : (
-          <ul className="open-moniker-panel__root" role="list">
-            {filteredTree.map((node) => (
-              <MonikerNode
-                key={node.path}
-                node={node}
-                depth={0}
-                expanded={expanded}
-                onToggle={toggle}
-              />
-            ))}
-          </ul>
-        )}
-      </div>
+          <div className="open-moniker-panel__tree">
+            {treeQuery.isError ? (
+              <div className="open-moniker-panel__state">Tree unavailable</div>
+            ) : treeQuery.isLoading ? (
+              <div className="open-moniker-panel__state">Loading catalog</div>
+            ) : (
+              <ul className="open-moniker-panel__root" role="list">
+                {filteredTree.map((node) => (
+                  <MonikerNode
+                    key={node.path}
+                    node={node}
+                    depth={0}
+                    expanded={expanded}
+                    onToggle={toggle}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
     </section>
   );
 }

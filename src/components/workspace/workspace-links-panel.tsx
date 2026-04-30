@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 const LINK_GROUPS: Array<{
   heading: string;
   links: Array<{ label: string; url: string }>;
@@ -32,29 +34,42 @@ const LINK_GROUPS: Array<{
 ];
 
 export function WorkspaceLinksPanel() {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
-    <div className="workspace-links-panel">
-      <div className="workspace-links-panel__header">Links</div>
-      <div className="workspace-links-panel__body">
-        {LINK_GROUPS.map((group) => (
-          <div className="workspace-links-panel__group" key={group.heading}>
-            <div className="workspace-links-panel__group-heading">
-              {group.heading}
+    <div className={`workspace-links-panel${collapsed ? " workspace-links-panel--collapsed" : ""}`}>
+      <button
+        className="workspace-links-panel__header"
+        onClick={() => setCollapsed((c) => !c)}
+        type="button"
+      >
+        <span>Links</span>
+        <span className={`workspace-links-panel__chevron${collapsed ? "" : " workspace-links-panel__chevron--open"}`}>
+          ›
+        </span>
+      </button>
+      {!collapsed && (
+        <div className="workspace-links-panel__body">
+          {LINK_GROUPS.map((group) => (
+            <div className="workspace-links-panel__group" key={group.heading}>
+              <div className="workspace-links-panel__group-heading">
+                {group.heading}
+              </div>
+              {group.links.map((link) => (
+                <a
+                  className="workspace-links-panel__link"
+                  href={link.url}
+                  key={link.url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {link.label}
+                </a>
+              ))}
             </div>
-            {group.links.map((link) => (
-              <a
-                className="workspace-links-panel__link"
-                href={link.url}
-                key={link.url}
-                rel="noreferrer"
-                target="_blank"
-              >
-                {link.label}
-              </a>
-            ))}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

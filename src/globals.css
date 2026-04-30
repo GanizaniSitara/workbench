@@ -403,12 +403,12 @@ code {
   font-size: 0.8rem;
   font-weight: 400;
   padding-right: 0.5rem;
-  transform: rotate(90deg);
+  transform: rotate(0deg);
   transition: transform 0.15s;
 }
 
 .open-moniker-panel__chevron--open {
-  transform: rotate(270deg);
+  transform: rotate(90deg);
 }
 
 .open-moniker-panel__header {
@@ -693,12 +693,12 @@ code {
   display: inline-block;
   font-size: 0.8rem;
   font-weight: 400;
-  transform: rotate(90deg);
+  transform: rotate(0deg);
   transition: transform 0.15s;
 }
 
 .workspace-links-panel__chevron--open {
-  transform: rotate(270deg);
+  transform: rotate(90deg);
 }
 
 .workspace-links-panel__body {

@@ -44,7 +44,10 @@ export function WorkspaceLinksPanel() {
         type="button"
       >
         <span>Links</span>
-        <span className={`workspace-links-panel__chevron${collapsed ? "" : " workspace-links-panel__chevron--open"}`}>
+        <span
+          className="workspace-links-panel__chevron"
+          style={{ transform: `rotate(${collapsed ? 0 : 90}deg)` }}
+        >
           ›
         </span>
       </button>

@@ -380,45 +380,37 @@ code {
   min-height: 0;
 }
 
-.open-moniker-panel__collapse-btn {
-  align-items: center;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  font: inherit;
-  justify-content: space-between;
-  padding: 0;
-  text-align: left;
-  width: 100%;
-}
-
-.open-moniker-panel__collapse-btn:hover .open-moniker-panel__title {
-  color: var(--foreground);
-}
-
 .open-moniker-panel__chevron {
   color: var(--muted);
   display: inline-block;
   font-size: 0.8rem;
   font-weight: 400;
   padding-right: 0.5rem;
-  transform: rotate(0deg);
   transition: transform 0.15s;
-}
-
-.open-moniker-panel__chevron--open {
-  transform: rotate(90deg);
 }
 
 .open-moniker-panel__header {
   align-items: center;
+  background: transparent;
+  border: none;
   border-bottom: 1px solid var(--panel-border-subtle);
+  color: var(--muted);
+  cursor: pointer;
   display: flex;
   flex-shrink: 0;
-  height: 1.625rem;
+  font: inherit;
+  font-size: 0.6rem;
+  font-weight: 700;
   justify-content: space-between;
-  padding: 0 0.45rem 0 0.5rem;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.open-moniker-panel__header:hover {
+  color: var(--foreground);
 }
 
 .open-moniker-panel__title {

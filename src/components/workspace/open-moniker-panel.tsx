@@ -141,18 +141,19 @@ export function OpenMonikerPanel() {
       className={`open-moniker-panel${collapsed ? " open-moniker-panel--collapsed" : ""}`}
       aria-label="Open Moniker catalog"
     >
-      <header className="open-moniker-panel__header">
-        <button
-          className="open-moniker-panel__collapse-btn"
-          onClick={() => setCollapsed((c) => !c)}
-          type="button"
+      <button
+        className="open-moniker-panel__header"
+        onClick={() => setCollapsed((c) => !c)}
+        type="button"
+      >
+        <span className="open-moniker-panel__title">Open Moniker</span>
+        <span
+          className="open-moniker-panel__chevron"
+          style={{ transform: `rotate(${collapsed ? 0 : 90}deg)` }}
         >
-          <span className="open-moniker-panel__title">Open Moniker</span>
-          <span className={`open-moniker-panel__chevron${collapsed ? "" : " open-moniker-panel__chevron--open"}`}>
-            ›
-          </span>
-        </button>
-      </header>
+          ›
+        </span>
+      </button>
 
       {!collapsed && (
         <>

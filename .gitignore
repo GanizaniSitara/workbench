@@ -38,6 +38,11 @@ yarn-error.log*
 # local development services
 .local-memory/
 
+# runtime data (SQLite databases, etc.)
+/data/*.db
+/data/*.db-shm
+/data/*.db-wal
+
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example

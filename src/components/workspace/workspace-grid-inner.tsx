@@ -14,6 +14,7 @@ import { MacroWatchlistWidget } from "@/components/widgets/macro-watchlist-widge
 import { NewsWidget } from "@/components/widgets/news-widget";
 import { PlaceholderWidget } from "@/components/widgets/placeholder-widget";
 import { ReferenceRatesWidget } from "@/components/widgets/reference-rates-widget";
+import { NotebookWidget } from "@/components/widgets/notebook-widget";
 import { OverlayChartWidget } from "@/components/widgets/overlay-chart-widget";
 import { YieldCurveWidget } from "@/components/widgets/yield-curve-widget";
 import type { WidgetDefinition } from "@/lib/layout";
@@ -40,6 +41,12 @@ function renderWidget(widget: WidgetDefinition) {
       return <EquityChartWidget moniker={widget.config?.moniker} />;
     case "overlay-chart":
       return <OverlayChartWidget />;
+    case "notebook":
+      return (
+        <NotebookWidget
+          notebookId={widget.config?.notebookId ?? widget.id}
+        />
+      );
     default:
       return <PlaceholderWidget type={widget.type} />;
   }

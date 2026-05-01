@@ -23,8 +23,10 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.5",
+    "@types/better-sqlite3": "^7.6.13",
     "ag-grid-community": "^34.3.1",
     "ag-grid-react": "^34.3.1",
+    "better-sqlite3": "^12.9.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "katex": "^0.16.45",

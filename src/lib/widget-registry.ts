@@ -118,6 +118,16 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     supportedDataKinds: ["equity", "rates"],
     defaultLayout: { w: 4, h: 8, minW: 2, minH: 4 },
   },
+  {
+    type: "notebook",
+    title: "Notebook",
+    description:
+      "Interactive scratchpad with code cells (wbn.fred, wbn.equity, wbn.curve…) and markdown.",
+    category: "Workbench",
+    idPrefix: "notebook",
+    supportedDataKinds: ["macro", "rates", "equity"],
+    defaultLayout: { w: 8, h: 14, minW: 4, minH: 6 },
+  },
 ];
 
 export const WIDGET_CATEGORIES: WidgetCategory[] = [

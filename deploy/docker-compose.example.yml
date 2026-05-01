@@ -1,0 +1,70 @@
+# Example multi-instance deployment for the Workbench API (data-router).
+#
+# Build the image first:
+#   docker build -t workbench-api .
+#
+# Start two router replicas behind a load balancer:
+#   docker compose -f deploy/docker-compose.example.yml up
+#
+# Scale horizontally at runtime:
+#   docker compose -f deploy/docker-compose.example.yml up --scale router=4
+#
+# All router instances are stateless: each request resolves a fresh route plan
+# and executes it against the configured downstream services. No shared disk,
+# cache, or session state is required between instances.
+
+services:
+
+  router:
+    image: workbench-api:latest
+    deploy:
+      replicas: 2
+    environment:
+      PORT: "4000"
+      # Comma-separated origins allowed by CORS. Use the public URL of the
+      # frontend when running behind a load balancer.
+      FRONTEND_ORIGIN: "http://nginx:80"
+      # Required: OpenBB-compatible data API. All router instances must share
+      # the same upstream — do not run per-instance OpenBB replicas.
+      OPENBB_BASE_URL: "http://openbb:6900"
+      # Optional: QuestDB cache. Shared across all router instances.
+      # QUESTDB_URL: "http://questdb:9000"
+      # Optional: Open Moniker route-plan resolver.
+      # MONIKER_RESOLVER_URL: "http://moniker:8050"
+    healthcheck:
+      # /health returns 200 if the process is up (liveness probe).
+      # /ready returns 200 only when downstream services are reachable (readiness probe).
+      # Kubernetes: configure livenessProbe on /health and readinessProbe on /ready.
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Minimal round-robin load balancer across router instances.
+  # Replace with your ingress controller in a real deployment.
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "4000:80"
+    depends_on:
+      - router
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+# Minimal nginx.conf to paste alongside this file:
+#
+#   events {}
+#   http {
+#     upstream router {
+#       server router:4000;       # Docker Compose resolves all replicas
+#     }
+#     server {
+#       listen 80;
+#       location / {
+#         proxy_pass http://router;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#       }
+#     }
+#   }

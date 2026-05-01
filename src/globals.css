@@ -1063,10 +1063,8 @@ code {
 .widget-slot--maximized .widget-chrome {
   border-radius: 0;
   box-shadow: 0 12px 40px var(--shadow);
-  height: calc(100vh - var(--toolbar-height));
-  inset: var(--toolbar-height) 0 0 0;
+  inset: var(--toolbar-height) 0 0 var(--rail-width, 200px);
   position: fixed;
-  width: 100vw;
   z-index: 450;
 }
 
@@ -2037,4 +2035,310 @@ code {
   background: var(--accent);
   border-radius: 6px;
   opacity: 0.15;
+}
+
+/* ─── Notebook widget ────────────────────────────────────────────────── */
+.notebook {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.notebook__toolbar {
+  align-items: center;
+  background: var(--panel-background-strong);
+  border-bottom: 1px solid var(--panel-border-subtle);
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.3rem;
+  height: 1.75rem;
+  padding: 0 0.45rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.notebook__toolbar-label {
+  color: var(--muted);
+  flex: 1;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.notebook__toolbar-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.2rem;
+}
+
+.notebook__toolbar-btn {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.66rem;
+  height: 1.25rem;
+  padding: 0 0.4rem;
+}
+
+.notebook__toolbar-btn:hover {
+  border-color: var(--accent);
+  color: var(--foreground);
+}
+
+.notebook__cells {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.35rem 0.45rem;
+}
+
+.notebook__cell {
+  border: 1px solid transparent;
+  border-radius: 3px;
+  margin-bottom: 0.45rem;
+}
+
+.notebook__cell--code {
+  border-color: var(--panel-border-subtle);
+}
+
+.notebook__cell--markdown {
+  border-color: transparent;
+}
+
+.notebook__cell:focus-within {
+  border-color: var(--panel-border);
+}
+
+.notebook__cell-header {
+  align-items: center;
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.1rem 0.3rem 0.1rem 0.2rem;
+}
+
+.notebook__cell-index {
+  color: var(--muted);
+  flex-shrink: 0;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.62rem;
+  min-width: 2rem;
+  user-select: none;
+}
+
+.notebook__cell-type {
+  color: var(--muted);
+  flex: 1;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.notebook__cell-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.15rem;
+}
+
+.notebook__cell-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.62rem;
+  height: 1.1rem;
+  line-height: 1;
+  padding: 0 0.3rem;
+}
+
+.notebook__cell-btn:hover:not(:disabled) {
+  border-color: var(--panel-border);
+  color: var(--foreground);
+}
+
+.notebook__cell-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.notebook__cell-btn--run {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent);
+}
+
+.notebook__cell-btn--run:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.notebook__cell-btn--del:hover:not(:disabled) {
+  border-color: #e05252;
+  color: #e05252;
+}
+
+.notebook__editor {
+  background: var(--panel-background-strong);
+  border: none;
+  border-top: 1px solid var(--panel-border-subtle);
+  color: var(--foreground);
+  display: block;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  min-height: 3rem;
+  padding: 0.4rem 0.45rem;
+  resize: none;
+  width: 100%;
+}
+
+.notebook__editor:focus {
+  border-top-color: var(--accent);
+  outline: none;
+}
+
+.notebook__editor--code {
+  color: var(--foreground);
+}
+
+.notebook__editor--markdown {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.notebook__markdown {
+  cursor: default;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  min-height: 1.5rem;
+  padding: 0.3rem 0.45rem;
+}
+
+.notebook__markdown > :first-child {
+  margin-top: 0;
+}
+
+.notebook__markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.notebook__markdown p,
+.notebook__markdown ul,
+.notebook__markdown ol,
+.notebook__markdown pre,
+.notebook__markdown blockquote {
+  margin: 0.35rem 0;
+}
+
+.notebook__markdown ul,
+.notebook__markdown ol {
+  padding-left: 1.1rem;
+}
+
+.notebook__markdown h1,
+.notebook__markdown h2,
+.notebook__markdown h3 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin: 0.4rem 0 0.2rem;
+}
+
+.notebook__markdown code {
+  background: color-mix(in srgb, var(--panel-border-subtle) 70%, transparent);
+  border-radius: 3px;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.68rem;
+  padding: 0.05rem 0.2rem;
+}
+
+.notebook__markdown pre {
+  background: var(--panel-background-strong);
+  border: 1px solid var(--panel-border-subtle);
+  border-radius: 3px;
+  overflow: auto;
+  padding: 0.4rem 0.45rem;
+}
+
+.notebook__markdown pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.notebook__output {
+  border-top: 1px dashed var(--panel-border-subtle);
+  font-size: 0.7rem;
+  line-height: 1.35;
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  padding: 0.35rem 0.45rem;
+}
+
+.notebook__output--text,
+.notebook__output--json {
+  color: var(--foreground);
+  font-family: Consolas, "Liberation Mono", monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.notebook__output--error {
+  color: #e05252;
+  font-family: Consolas, "Liberation Mono", monospace;
+  white-space: pre-wrap;
+}
+
+.notebook__output--table {
+  max-height: 260px;
+  overflow: auto;
+  padding: 0;
+}
+
+.notebook__table {
+  border-collapse: collapse;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.68rem;
+  width: 100%;
+}
+
+.notebook__table th {
+  background: var(--panel-background-strong);
+  border-bottom: 1px solid var(--panel-border);
+  color: var(--muted);
+  font-weight: 700;
+  padding: 0.25rem 0.4rem;
+  position: sticky;
+  text-align: left;
+  top: 0;
+  white-space: nowrap;
+}
+
+.notebook__table td {
+  border-bottom: 1px solid var(--panel-border-subtle);
+  color: var(--foreground);
+  padding: 0.2rem 0.4rem;
+  white-space: nowrap;
+}
+
+.notebook__table tr:hover td {
+  background: var(--panel-background-strong);
+}
+
+.notebook__output-truncation {
+  color: var(--muted);
+  font-size: 0.64rem;
+  margin: 0.25rem 0.45rem;
 }

@@ -1,16 +1,14 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { fetchProfile, saveProfile } from "@/lib/profile-api";
 import {
   CONTEXT_FIELD_LABELS,
   CONTEXT_FIELD_PLACEHOLDERS,
   CONTEXT_TOPICS,
-  hydrateManualContextFields,
-  loadUserContext,
   MEMORY_API,
   MEMORY_USER_ID,
   saveManualUserContext,
-  type ContextFact,
   type ContextTopic,
   type ManualContextFields,
 } from "@/lib/user-context";
@@ -27,21 +25,25 @@ interface UserContextDrawerProps {
 
 export function UserContextDrawer({ isOpen, onClose }: UserContextDrawerProps) {
   const [fields, setFields] = useState<ManualContextFields>(EMPTY_FIELDS);
-  const [facts, setFacts] = useState<ContextFact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (!isOpen || !MEMORY_API) return;
+    if (!isOpen) return;
 
     setIsLoading(true);
     setError(null);
-    loadUserContext(MEMORY_USER_ID)
-      .then((loadedFacts) => {
-        setFacts(loadedFacts);
-        setFields(hydrateManualContextFields(loadedFacts));
+    fetchProfile(MEMORY_USER_ID)
+      .then((profile) => {
+        setFields({
+          role: profile.role,
+          strategy: profile.strategy,
+          portfolio: profile.portfolio,
+          preferences: profile.preferences,
+          focus: profile.focus,
+        });
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : String(err));
@@ -63,10 +65,10 @@ export function UserContextDrawer({ isOpen, onClose }: UserContextDrawerProps) {
     setSaved(false);
 
     try {
-      await saveManualUserContext(MEMORY_USER_ID, fields);
-      const loadedFacts = await loadUserContext(MEMORY_USER_ID);
-      setFacts(loadedFacts);
-      setFields(hydrateManualContextFields(loadedFacts));
+      await saveProfile(MEMORY_USER_ID, fields);
+      if (MEMORY_API) {
+        saveManualUserContext(MEMORY_USER_ID, fields).catch(() => {});
+      }
       setSaved(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -100,16 +102,10 @@ export function UserContextDrawer({ isOpen, onClose }: UserContextDrawerProps) {
         </div>
 
         <form className="user-context__content" onSubmit={handleSubmit}>
-          {!MEMORY_API && (
-            <div className="user-context__state">
-              Memory API is not configured.
-            </div>
-          )}
-          {MEMORY_API && isLoading && (
+          {isLoading && (
             <div className="user-context__state">Loading...</div>
           )}
-          {MEMORY_API &&
-            !isLoading &&
+          {!isLoading &&
             CONTEXT_TOPICS.map((topic) => (
               <label className="user-context__field" key={topic}>
                 <span className="user-context__label">
@@ -126,17 +122,6 @@ export function UserContextDrawer({ isOpen, onClose }: UserContextDrawerProps) {
               </label>
             ))}
 
-          {MEMORY_API && facts.length > 0 && (
-            <section className="user-context__facts" aria-label="Stored facts">
-              <h3 className="user-context__section-title">Stored Facts</h3>
-              {facts.slice(0, 8).map((fact) => (
-                <p className="user-context__fact" key={fact.id}>
-                  {fact.text}
-                </p>
-              ))}
-            </section>
-          )}
-
           {error && <div className="user-context__error">{error}</div>}
           {saved && <div className="user-context__saved">Saved</div>}
 
@@ -150,7 +135,7 @@ export function UserContextDrawer({ isOpen, onClose }: UserContextDrawerProps) {
             </button>
             <button
               className="user-context__btn user-context__btn--primary"
-              disabled={!MEMORY_API || isSaving || isLoading}
+              disabled={isSaving || isLoading}
               type="submit"
             >
               {isSaving ? "Saving..." : "Save"}

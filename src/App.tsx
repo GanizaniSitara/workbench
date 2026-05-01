@@ -52,7 +52,7 @@ export default function App() {
 
   return (
     <Providers>
-      <div className="workspace">
+      <div className="workspace" style={{ "--rail-width": `${railWidth}px` } as React.CSSProperties}>
         <WorkspaceToolbar />
         <div className="workspace__body">
           <aside

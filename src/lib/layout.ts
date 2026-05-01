@@ -9,7 +9,8 @@ export type WidgetType =
   | "placeholder-watchlist"
   | "placeholder-chat"
   | "placeholder-news"
-  | "overlay-chart";
+  | "overlay-chart"
+  | "notebook";
 
 export interface WidgetDefinition {
   id: string;

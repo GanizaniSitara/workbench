@@ -1,6 +1,26 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+
+function ArrowUpIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="13"
+      viewBox="0 0 15 15"
+      width="13"
+    >
+      <path
+        d="M7.5 13V2M3 6l4.5-4.5L12 6"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
 import { ChatMessageContent } from "@/components/widgets/chat-message-content";
 import { apiUrl } from "@/lib/api-base";
 import {
@@ -199,7 +219,10 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
             className={`ai-chat__message ai-chat__message--${msg.role}`}
             key={msg.id ?? `${msg.role}-${i}`}
           >
-            <ChatMessageContent content={msg.content} />
+            <ChatMessageContent
+              content={msg.content}
+              showCopyActions={msg.role === "assistant"}
+            />
           </div>
         ))}
         {error && <div className="ai-chat__error">{error}</div>}
@@ -211,17 +234,19 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
           disabled={isLoading}
           onKeyDown={handleInputKeyDown}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Message"
+          placeholder="Ask anything…"
           ref={inputRef}
-          rows={2}
+          rows={1}
           value={draft}
         />
         <button
+          aria-label={isSending ? "Sending…" : "Send message"}
           className="ai-chat__send"
           disabled={isSending || isLoading}
+          title={isSending ? "Sending…" : "Send message"}
           type="submit"
         >
-          {isSending ? "Working…" : "Send"}
+          {isSending ? "…" : <ArrowUpIcon />}
         </button>
       </form>
     </div>

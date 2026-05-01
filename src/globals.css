@@ -1643,44 +1643,57 @@ code {
 }
 
 .ai-chat__form {
-  align-items: stretch;
-  display: flex;
   flex-shrink: 0;
-  gap: 0.3rem;
+}
+
+.ai-chat__compose {
+  align-items: flex-end;
+  background: var(--panel-background-strong);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  display: flex;
+  gap: 0.2rem;
+  padding: 0.2rem 0.2rem 0.2rem 0.45rem;
+  transition: border-color 0.12s;
+}
+
+.ai-chat__compose:focus-within {
+  border-color: var(--accent);
 }
 
 .ai-chat__input {
-  background: var(--panel-background-strong);
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
+  background: transparent;
+  border: none;
   color: var(--foreground);
   flex: 1;
   font: inherit;
   font-size: 0.72rem;
-  min-height: 2rem;
+  min-height: 1.4rem;
   min-width: 0;
-  padding: 0.3rem 0.45rem;
+  outline: none;
+  padding: 0.15rem 0;
   resize: none;
 }
 
 .ai-chat__input:focus {
-  border-color: var(--accent);
   outline: none;
 }
 
 .ai-chat__send {
   align-items: center;
   background: var(--accent);
-  border: 1px solid var(--accent);
+  border: none;
   border-radius: 4px;
   color: var(--accent-contrast);
   cursor: pointer;
   display: flex;
-  flex: 0 0 2.2rem;
+  flex: 0 0 auto;
   font: inherit;
   font-size: 0.72rem;
   font-weight: 700;
+  height: 1.7rem;
   justify-content: center;
+  width: 1.7rem;
 }
 
 .ai-chat__send:disabled {

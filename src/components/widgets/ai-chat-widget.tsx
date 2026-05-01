@@ -229,25 +229,27 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
         <div ref={bottomRef} />
       </div>
       <form className="ai-chat__form" onSubmit={handleSubmit}>
-        <textarea
-          className="ai-chat__input"
-          disabled={isLoading}
-          onKeyDown={handleInputKeyDown}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Ask anything…"
-          ref={inputRef}
-          rows={1}
-          value={draft}
-        />
-        <button
-          aria-label={isSending ? "Sending…" : "Send message"}
-          className="ai-chat__send"
-          disabled={isSending || isLoading}
-          title={isSending ? "Sending…" : "Send message"}
-          type="submit"
-        >
-          {isSending ? "…" : <ArrowUpIcon />}
-        </button>
+        <div className="ai-chat__compose">
+          <textarea
+            className="ai-chat__input"
+            disabled={isLoading}
+            onKeyDown={handleInputKeyDown}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Ask anything…"
+            ref={inputRef}
+            rows={1}
+            value={draft}
+          />
+          <button
+            aria-label={isSending ? "Sending…" : "Send message"}
+            className="ai-chat__send"
+            disabled={isSending || isLoading}
+            title={isSending ? "Sending…" : "Send message"}
+            type="submit"
+          >
+            {isSending ? "…" : <ArrowUpIcon />}
+          </button>
+        </div>
       </form>
     </div>
   );

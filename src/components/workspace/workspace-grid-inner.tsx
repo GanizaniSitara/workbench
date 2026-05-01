@@ -16,6 +16,10 @@ import { PlaceholderWidget } from "@/components/widgets/placeholder-widget";
 import { ReferenceRatesWidget } from "@/components/widgets/reference-rates-widget";
 import { OverlayChartWidget } from "@/components/widgets/overlay-chart-widget";
 import { YieldCurveWidget } from "@/components/widgets/yield-curve-widget";
+import { PositionsTableWidget } from "@/components/widgets/positions-table-widget";
+import { PnlSummaryWidget } from "@/components/widgets/pnl-summary-widget";
+import { ExposureCardWidget } from "@/components/widgets/exposure-card-widget";
+import { PositionDetailWidget } from "@/components/widgets/position-detail-widget";
 import type { WidgetDefinition } from "@/lib/layout";
 
 const WidthAdaptiveGrid = WidthProvider(GridLayout);
@@ -40,6 +44,14 @@ function renderWidget(widget: WidgetDefinition) {
       return <EquityChartWidget moniker={widget.config?.moniker} />;
     case "overlay-chart":
       return <OverlayChartWidget />;
+    case "positions-table":
+      return <PositionsTableWidget />;
+    case "pnl-summary":
+      return <PnlSummaryWidget />;
+    case "exposure-card":
+      return <ExposureCardWidget />;
+    case "position-detail":
+      return <PositionDetailWidget />;
     default:
       return <PlaceholderWidget type={widget.type} />;
   }

@@ -12,6 +12,10 @@ const LABELS: Record<WidgetType, string> = {
   "placeholder-chat": "AI Chat widget — coming in WBN-006",
   "placeholder-news": "News widget — coming in WBN-008",
   "overlay-chart": "Overlay chart widget",
+  "positions-table": "Positions table widget",
+  "pnl-summary": "P&L summary widget",
+  "exposure-card": "Exposure card widget",
+  "position-detail": "Position detail widget",
 };
 
 interface PlaceholderWidgetProps {

@@ -9,7 +9,11 @@ export type WidgetType =
   | "placeholder-watchlist"
   | "placeholder-chat"
   | "placeholder-news"
-  | "overlay-chart";
+  | "overlay-chart"
+  | "positions-table"
+  | "pnl-summary"
+  | "exposure-card"
+  | "position-detail";
 
 export interface WidgetDefinition {
   id: string;
@@ -36,14 +40,14 @@ export interface Screen {
 }
 
 export interface WorkspaceLayout {
-  version: 4;
+  version: 5;
   userId: string;
   screens: Screen[];
   activeScreenId: string;
 }
 
 const STORAGE_KEY = "workbench-layout-v1";
-const LAYOUT_VERSION = 4;
+const LAYOUT_VERSION = 5;
 
 const SCREEN1_WIDGETS: WidgetDefinition[] = [
   { id: "macro-1", type: "macro-strip", title: "Macro" },
@@ -71,6 +75,20 @@ const SCREEN2_GRID: LayoutItem[] = [
   { i: "equity-1", x: 0, y: 3, w: 8, h: 10, minW: 4, minH: 4 },
 ];
 
+const SCREEN3_WIDGETS: WidgetDefinition[] = [
+  { id: "pnl-1", type: "pnl-summary", title: "P&L Summary" },
+  { id: "positions-1", type: "positions-table", title: "Positions" },
+  { id: "exposure-1", type: "exposure-card", title: "Exposure" },
+  { id: "detail-1", type: "position-detail", title: "Position Detail" },
+];
+
+const SCREEN3_GRID: LayoutItem[] = [
+  { i: "pnl-1", x: 0, y: 0, w: 12, h: 4, minW: 6, minH: 3 },
+  { i: "positions-1", x: 0, y: 4, w: 8, h: 10, minW: 5, minH: 5 },
+  { i: "exposure-1", x: 8, y: 4, w: 4, h: 10, minW: 3, minH: 5 },
+  { i: "detail-1", x: 0, y: 14, w: 12, h: 8, minW: 5, minH: 4 },
+];
+
 export function buildDefaultLayout(userId: string): WorkspaceLayout {
   return {
     version: LAYOUT_VERSION,
@@ -88,6 +106,12 @@ export function buildDefaultLayout(userId: string): WorkspaceLayout {
         name: "Screen 2",
         widgets: structuredClone(SCREEN2_WIDGETS),
         grid: structuredClone(SCREEN2_GRID),
+      },
+      {
+        id: "screen-3",
+        name: "Portfolio",
+        widgets: structuredClone(SCREEN3_WIDGETS),
+        grid: structuredClone(SCREEN3_GRID),
       },
     ],
   };
@@ -110,7 +134,7 @@ export function loadLayout(userId: string): WorkspaceLayout {
     if (parsed.version === 3 && parsed.userId === userId) {
       const defaults = buildDefaultLayout(userId);
       return {
-        version: 4,
+        version: 5,
         userId,
         activeScreenId: "screen-1",
         screens: [
@@ -121,6 +145,20 @@ export function loadLayout(userId: string): WorkspaceLayout {
             grid: parsed.grid ?? [],
           },
           defaults.screens[1],
+          defaults.screens[2],
+        ],
+      };
+    }
+    // Migrate v4 → v5: append Portfolio screen-3 to existing layout
+    if (parsed.version === 4 && parsed.userId === userId) {
+      const defaults = buildDefaultLayout(userId);
+      return {
+        version: 5,
+        userId,
+        activeScreenId: parsed.activeScreenId ?? "screen-1",
+        screens: [
+          ...(parsed.screens ?? []),
+          defaults.screens[2],
         ],
       };
     }

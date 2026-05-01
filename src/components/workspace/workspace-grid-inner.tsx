@@ -15,8 +15,8 @@ import { NewsWidget } from "@/components/widgets/news-widget";
 import { PlaceholderWidget } from "@/components/widgets/placeholder-widget";
 import { ReferenceRatesWidget } from "@/components/widgets/reference-rates-widget";
 import { EventContextWidget } from "@/components/widgets/event-context-widget";
+import { JupyterLabWidget } from "@/components/widgets/jupyter-lab-widget";
 import { NewsFeedWidget } from "@/components/widgets/news-feed-widget";
-import { NotebookWidget } from "@/components/widgets/notebook-widget";
 import { OverlayChartWidget } from "@/components/widgets/overlay-chart-widget";
 import { ResearchPanelWidget } from "@/components/widgets/research-panel-widget";
 import { YieldCurveWidget } from "@/components/widgets/yield-curve-widget";
@@ -49,11 +49,7 @@ function renderWidget(widget: WidgetDefinition) {
     case "overlay-chart":
       return <OverlayChartWidget />;
     case "notebook":
-      return (
-        <NotebookWidget
-          notebookId={widget.config?.notebookId ?? widget.id}
-        />
-      );
+      return <JupyterLabWidget />;
     case "news-feed":
       return <NewsFeedWidget />;
     case "event-context":

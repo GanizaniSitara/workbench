@@ -68,7 +68,7 @@ export class LocalJupyterAdapter implements IKernelGatewayAdapter {
     const kernelSocket = new WebSocket(url, {
       headers: this.token ? { Authorization: `token ${this.token}` } : undefined,
     });
-    const queuedMessages: WebSocket.RawData[] = [];
+    const queuedMessages: Array<string | WebSocket.RawData> = [];
     let closed = false;
 
     const closeBoth = () => {
@@ -94,15 +94,17 @@ export class LocalJupyterAdapter implements IKernelGatewayAdapter {
       }
     });
 
-    kernelSocket.on("message", (data) => {
-      if (clientSocket.readyState === WebSocket.OPEN) clientSocket.send(data);
+    kernelSocket.on("message", (data, isBinary) => {
+      if (clientSocket.readyState !== WebSocket.OPEN) return;
+      clientSocket.send(isBinary ? data : data.toString());
     });
 
-    clientSocket.on("message", (data) => {
+    clientSocket.on("message", (data, isBinary) => {
+      const payload = isBinary ? data : data.toString();
       if (kernelSocket.readyState === WebSocket.OPEN) {
-        kernelSocket.send(data);
+        kernelSocket.send(payload);
       } else if (kernelSocket.readyState === WebSocket.CONNECTING) {
-        queuedMessages.push(data);
+        queuedMessages.push(payload);
       }
     });
 

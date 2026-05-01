@@ -83,7 +83,7 @@ const JUPYTER_WIDGETS: WidgetDefinition[] = [
   {
     id: "notebook-jupyter",
     type: "notebook",
-    title: "Notebook",
+    title: "JupyterLab",
     config: { notebookId: "jupyter-main" },
   },
 ];

@@ -61,3 +61,4 @@ book*-search.md
 *.gif
 *.webp
 *.pdf
+!tests/e2e/**/*.png

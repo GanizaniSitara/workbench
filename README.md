@@ -80,7 +80,14 @@ QuestDB, Ollama, and chat-memory services are optional. Without QuestDB, market 
 | `npm run typecheck`    | Type-check frontend and backend TS configs          |
 | `npm run format:check` | Check formatting                                    |
 | `npm run test:unit`    | Run Vitest unit tests                               |
-| `npm run test:e2e`     | Run Playwright end-to-end tests                     |
+| `npm run test:api`     | Run Playwright API contract tests                   |
+| `npm run test:e2e`     | Run Playwright end-to-end workflow tests            |
+| `npm run test:visual`  | Run Playwright visual regression tests              |
+| `npm run test:perf`    | Run Playwright browser/API performance checks       |
+| `npm run test:regression` | Run the full Playwright regression suite         |
+
+See `docs/testing.md` for the visual baseline update workflow, performance
+budgets, and failure artifact locations.
 
 ## Environment
 

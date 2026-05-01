@@ -222,7 +222,6 @@ function collectGroupIds(nodes: NavNode[]): string[] {
 }
 
 const ALL_GROUP_IDS = collectGroupIds(NAV_TREE);
-const ALL_EXPANDED = Object.fromEntries(ALL_GROUP_IDS.map((id) => [id, true]));
 const ALL_COLLAPSED = Object.fromEntries(
   ALL_GROUP_IDS.map((id) => [id, false]),
 );

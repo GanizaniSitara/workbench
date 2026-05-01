@@ -2,6 +2,10 @@ import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const webPort = Number.parseInt(process.env.VITE_PORT ?? "3000", 10);
+const apiTarget = `http://127.0.0.1:${process.env.PORT ?? "4000"}`;
+const apiWsTarget = `ws://127.0.0.1:${process.env.PORT ?? "4000"}`;
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -11,20 +15,20 @@ export default defineConfig({
   },
   server: {
     host: "127.0.0.1",
-    port: 3000,
+    port: webPort,
     strictPort: true,
     proxy: {
       "/api/jupyter/ws": {
-        target: "ws://127.0.0.1:4000",
+        target: apiWsTarget,
         ws: true,
       },
-      "/api": "http://127.0.0.1:4000",
-      "/health": "http://127.0.0.1:4000",
+      "/api": apiTarget,
+      "/health": apiTarget,
     },
   },
   preview: {
     host: "127.0.0.1",
-    port: 3000,
+    port: webPort,
     strictPort: true,
   },
 });

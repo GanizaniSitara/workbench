@@ -16,7 +16,12 @@
     "lint": "eslint src tests vite.config.ts playwright.config.ts",
     "lint:fix": "eslint src tests vite.config.ts playwright.config.ts --fix",
     "test:unit": "vitest run tests/unit",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=e2e-chromium",
+    "test:api": "playwright test --project=api-contract",
+    "test:visual": "playwright test --project=visual-desktop",
+    "test:visual:update": "playwright test --project=visual-desktop --update-snapshots",
+    "test:perf": "playwright test --project=performance",
+    "test:regression": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json"

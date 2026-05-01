@@ -10,7 +10,10 @@ export type WidgetType =
   | "placeholder-chat"
   | "placeholder-news"
   | "overlay-chart"
-  | "notebook";
+  | "notebook"
+  | "news-feed"
+  | "event-context"
+  | "research-panel";
 
 export interface WidgetDefinition {
   id: string;

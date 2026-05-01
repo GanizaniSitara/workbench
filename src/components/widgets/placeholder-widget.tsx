@@ -13,6 +13,9 @@ const LABELS: Record<WidgetType, string> = {
   "placeholder-news": "News widget — coming in WBN-008",
   "overlay-chart": "Overlay chart widget",
   "notebook": "Notebook widget",
+  "news-feed": "News feed widget",
+  "event-context": "Event context widget",
+  "research-panel": "Research panel widget",
 };
 
 interface PlaceholderWidgetProps {

@@ -118,6 +118,33 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     supportedDataKinds: ["equity", "rates"],
     defaultLayout: { w: 4, h: 8, minW: 2, minH: 4 },
   },
+  {
+    type: "news-feed",
+    title: "News Feed",
+    description: "Symbol-linked news feed with compact cards and auto-refresh.",
+    category: "Research",
+    idPrefix: "news-feed",
+    supportedDataKinds: ["news", "equity"],
+    defaultLayout: { w: 6, h: 9, minW: 3, minH: 4 },
+  },
+  {
+    type: "event-context",
+    title: "Event Context",
+    description: "Per-symbol news activity radar — spot which tickers are in the headlines.",
+    category: "Research",
+    idPrefix: "event-ctx",
+    supportedDataKinds: ["news", "equity"],
+    defaultLayout: { w: 5, h: 8, minW: 3, minH: 4 },
+  },
+  {
+    type: "research-panel",
+    title: "Research Panel",
+    description: "Combined price change and top headlines per tracked symbol.",
+    category: "Research",
+    idPrefix: "research",
+    supportedDataKinds: ["news", "equity"],
+    defaultLayout: { w: 6, h: 10, minW: 3, minH: 5 },
+  },
 ];
 
 export const WIDGET_CATEGORIES: WidgetCategory[] = [

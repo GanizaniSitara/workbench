@@ -14,7 +14,10 @@ import { MacroWatchlistWidget } from "@/components/widgets/macro-watchlist-widge
 import { NewsWidget } from "@/components/widgets/news-widget";
 import { PlaceholderWidget } from "@/components/widgets/placeholder-widget";
 import { ReferenceRatesWidget } from "@/components/widgets/reference-rates-widget";
+import { EventContextWidget } from "@/components/widgets/event-context-widget";
+import { NewsFeedWidget } from "@/components/widgets/news-feed-widget";
 import { OverlayChartWidget } from "@/components/widgets/overlay-chart-widget";
+import { ResearchPanelWidget } from "@/components/widgets/research-panel-widget";
 import { YieldCurveWidget } from "@/components/widgets/yield-curve-widget";
 import type { WidgetDefinition } from "@/lib/layout";
 
@@ -40,6 +43,12 @@ function renderWidget(widget: WidgetDefinition) {
       return <EquityChartWidget moniker={widget.config?.moniker} />;
     case "overlay-chart":
       return <OverlayChartWidget />;
+    case "news-feed":
+      return <NewsFeedWidget />;
+    case "event-context":
+      return <EventContextWidget />;
+    case "research-panel":
+      return <ResearchPanelWidget />;
     default:
       return <PlaceholderWidget type={widget.type} />;
   }

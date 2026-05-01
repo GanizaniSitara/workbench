@@ -3,6 +3,7 @@ import cors from "cors";
 import express from "express";
 import { chatRouter } from "./routes/chat";
 import { dataRouter } from "./routes/data";
+import { handleJupyterUpgrade, jupyterRouter } from "./routes/jupyter";
 import { marketRouter } from "./routes/market";
 import { newsRouter } from "./routes/news";
 import { profileRouter } from "./routes/profile";
@@ -68,12 +69,22 @@ app.get("/ready", async (_req, res) => {
     services.moniker_resolver = "not-configured";
   }
 
+  const jupyterGatewayUrl = process.env.JUPYTER_GATEWAY_URL?.trim();
+  if (jupyterGatewayUrl) {
+    services.jupyter_gateway = (await probeService(jupyterGatewayUrl))
+      ? "ok"
+      : "unreachable";
+  } else {
+    services.jupyter_gateway = "not-configured";
+  }
+
   const ready = !openbbDegraded;
   res.status(ready ? 200 : 503).json({ ready, services });
 });
 
 app.use("/api/chat", chatRouter);
 app.use("/api/data", dataRouter);
+app.use("/api/jupyter", jupyterRouter);
 app.use("/api/market", marketRouter);
 app.use("/api/news", newsRouter);
 app.use("/api/profile", profileRouter);
@@ -82,4 +93,10 @@ app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-app.listen(port, "0.0.0.0");
+const server = app.listen(port, "0.0.0.0");
+
+server.on("upgrade", (request, socket, head) => {
+  if (!handleJupyterUpgrade(request, socket, head)) {
+    socket.destroy();
+  }
+});

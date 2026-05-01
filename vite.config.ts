@@ -14,6 +14,10 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
     proxy: {
+      "/api/jupyter/ws": {
+        target: "ws://127.0.0.1:4000",
+        ws: true,
+      },
       "/api": "http://127.0.0.1:4000",
       "/health": "http://127.0.0.1:4000",
     },

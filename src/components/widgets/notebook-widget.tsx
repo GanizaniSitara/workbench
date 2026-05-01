@@ -1,8 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { wbn } from "@/lib/notebook-helpers";
+import {
+  KernelClient,
+  type KernelOutput,
+  type KernelStatus,
+} from "@/lib/kernel-client";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -14,13 +18,7 @@ interface Cell {
   source: string;
 }
 
-type CellOutput =
-  | { kind: "text"; value: string }
-  | { kind: "error"; message: string }
-  | { kind: "table"; columns: string[]; rows: unknown[][] }
-  | { kind: "json"; value: unknown };
-
-type OutputMap = Record<string, CellOutput | undefined>;
+type OutputMap = Record<string, KernelOutput[] | undefined>;
 
 // ── Persistence ─────────────────────────────────────────────────────────────
 
@@ -32,12 +30,12 @@ function defaultCells(): Cell[] {
       id: crypto.randomUUID(),
       type: "markdown",
       source:
-        "## Notebook\n\nFetch workbench data with the `wbn` helpers:\n\n- `wbn.fred(symbol, { range })` — FRED macro time series\n- `wbn.equity(symbol, { range })` — equity price history\n- `wbn.curve()` — US Treasury yield curve\n- `wbn.rates()` — reference rates (SONIA, SOFR, ESTR, EFFR)\n- `wbn.snapshot()` — latest macro indicator values\n\nCode cells run in an async context — use `return` to display output.",
+        "## Notebook\n\nFetch workbench data with the Python `wbn` helpers:\n\n- `wbn.fred(symbol, range=\"1y\")` - FRED macro time series\n- `wbn.equity(symbol, range=\"1y\")` - equity price history\n- `wbn.curve()` - US Treasury yield curve\n- `wbn.rates()` - reference rates (SONIA, SOFR, ESTR, EFFR)\n- `wbn.snapshot()` - latest macro indicator values\n\nVariables persist across code cells while the kernel is running.",
     },
     {
       id: crypto.randomUUID(),
       type: "code",
-      source: "// 10Y Treasury yield — last 3 months\nreturn await wbn.fred('DGS10', { range: '3m' })",
+      source: "# 10Y Treasury yield - last 3 months\nwbn.fred(\"DGS10\", range=\"3m\")",
     },
   ];
 }
@@ -63,102 +61,111 @@ function saveCells(notebookId: string, cells: Cell[]): void {
   );
 }
 
-// ── Execution ──────────────────────────────────────────────────────────────
-
-function toOutput(value: unknown): CellOutput {
-  if (value === undefined || value === null)
-    return { kind: "text", value: "(no output)" };
-  if (typeof value === "string") return { kind: "text", value };
-  if (typeof value === "number" || typeof value === "boolean")
-    return { kind: "text", value: String(value) };
-  if (
-    Array.isArray(value) &&
-    value.length > 0 &&
-    typeof value[0] === "object" &&
-    value[0] !== null
-  ) {
-    const columns = [...new Set(value.flatMap(Object.keys))];
-    const rows = (value as Record<string, unknown>[]).map((row) =>
-      columns.map((k) => row[k] ?? ""),
-    );
-    return { kind: "table", columns, rows };
-  }
-  return { kind: "json", value };
-}
-
-async function executeCell(source: string): Promise<CellOutput> {
-  try {
-    // eslint-disable-next-line no-new-func
-    const fn = new Function("wbn", `return (async () => { ${source} })()`);
-    const result = await (fn(wbn) as Promise<unknown>);
-    return toOutput(result);
-  } catch (err) {
-    return {
-      kind: "error",
-      message: err instanceof Error ? err.message : String(err),
-    };
-  }
-}
-
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function makeCell(type: CellType, source = ""): Cell {
   return { id: crypto.randomUUID(), type, source };
 }
 
+function statusLabel(status: KernelStatus): string {
+  switch (status) {
+    case "not-connected":
+      return "no kernel";
+    case "starting":
+      return "starting";
+    case "busy":
+      return "busy";
+    case "idle":
+      return "idle";
+    case "dead":
+      return "dead";
+  }
+}
+
+function appendOutput(
+  outputs: OutputMap,
+  cellId: string,
+  output: KernelOutput,
+): OutputMap {
+  if (output.type === "status") return outputs;
+  return {
+    ...outputs,
+    [cellId]: [...(outputs[cellId] ?? []), output],
+  };
+}
+
 // ── Output renderer ────────────────────────────────────────────────────────
 
-function CellOutputView({ output }: { output: CellOutput }) {
-  switch (output.kind) {
-    case "text":
-      return (
-        <pre className="notebook__output notebook__output--text">
-          {output.value}
-        </pre>
-      );
-    case "error":
-      return (
-        <pre className="notebook__output notebook__output--error">
-          {output.message}
-        </pre>
-      );
-    case "json":
-      return (
-        <pre className="notebook__output notebook__output--json">
-          {JSON.stringify(output.value, null, 2)}
-        </pre>
-      );
-    case "table": {
-      const MAX_ROWS = 200;
-      return (
-        <div className="notebook__output notebook__output--table">
-          <table className="notebook__table">
-            <thead>
-              <tr>
-                {output.columns.map((col) => (
-                  <th key={col}>{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {output.rows.slice(0, MAX_ROWS).map((row, i) => (
-                <tr key={i}>
-                  {row.map((cell, j) => (
-                    <td key={j}>{String(cell ?? "")}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {output.rows.length > MAX_ROWS && (
-            <p className="notebook__output-truncation">
-              Showing {MAX_ROWS} of {output.rows.length} rows
-            </p>
-          )}
-        </div>
-      );
-    }
+function DisplayDataView({ data }: { data: Record<string, unknown> }) {
+  const html = data["text/html"];
+  const image = data["image/png"];
+  const json = data["application/json"];
+  const text = data["text/plain"];
+
+  if (typeof html === "string") {
+    return (
+      <div
+        className="notebook__output notebook__output--html"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
   }
+
+  if (typeof image === "string") {
+    return (
+      <div className="notebook__output notebook__output--image">
+        <img alt="" src={`data:image/png;base64,${image}`} />
+      </div>
+    );
+  }
+
+  if (json !== undefined) {
+    return (
+      <pre className="notebook__output notebook__output--json">
+        {JSON.stringify(json, null, 2)}
+      </pre>
+    );
+  }
+
+  return (
+    <pre className="notebook__output notebook__output--text">
+      {typeof text === "string" ? text : "(no output)"}
+    </pre>
+  );
+}
+
+function KernelOutputView({ output }: { output: KernelOutput }) {
+  if (output.type === "stream") {
+    return (
+      <pre className="notebook__output notebook__output--text">
+        {output.text}
+      </pre>
+    );
+  }
+
+  if (output.type === "error") {
+    return (
+      <pre className="notebook__output notebook__output--error">
+        {output.traceback?.join("\n") || `${output.ename}: ${output.evalue}`}
+      </pre>
+    );
+  }
+
+  if (output.type === "display_data" || output.type === "execute_result") {
+    return <DisplayDataView data={output.data ?? {}} />;
+  }
+
+  return null;
+}
+
+function CellOutputView({ outputs }: { outputs: KernelOutput[] }) {
+  return (
+    <>
+      {outputs.map((output, index) => (
+        <KernelOutputView key={index} output={output} />
+      ))}
+    </>
+  );
 }
 
 // ── Widget ─────────────────────────────────────────────────────────────────
@@ -172,11 +179,21 @@ export function NotebookWidget({ notebookId }: NotebookWidgetProps) {
   const [outputs, setOutputs] = useState<OutputMap>({});
   const [running, setRunning] = useState<Set<string>>(new Set());
   const [editingMd, setEditingMd] = useState<Set<string>>(new Set());
+  const [kernelStatus, setKernelStatus] = useState<KernelStatus>("not-connected");
+  const [kernelError, setKernelError] = useState<string | null>(null);
+  const kernelClientRef = useRef<KernelClient | null>(null);
 
   // Persist whenever cells change
   useEffect(() => {
     saveCells(notebookId, cells);
   }, [notebookId, cells]);
+
+  useEffect(() => {
+    return () => {
+      void kernelClientRef.current?.stop();
+      kernelClientRef.current = null;
+    };
+  }, []);
 
   const updateSource = useCallback((id: string, source: string) => {
     setCells((prev) =>
@@ -184,17 +201,42 @@ export function NotebookWidget({ notebookId }: NotebookWidgetProps) {
     );
   }, []);
 
+  const getKernelClient = useCallback(async () => {
+    if (!kernelClientRef.current) {
+      kernelClientRef.current = new KernelClient({
+        onStatusChange: setKernelStatus,
+      });
+    }
+    await kernelClientRef.current.start();
+    return kernelClientRef.current;
+  }, []);
+
   const runCell = useCallback(async (cell: Cell) => {
     if (cell.type !== "code") return;
     setRunning((prev) => new Set(prev).add(cell.id));
-    const output = await executeCell(cell.source);
-    setOutputs((prev) => ({ ...prev, [cell.id]: output }));
-    setRunning((prev) => {
-      const next = new Set(prev);
-      next.delete(cell.id);
-      return next;
-    });
-  }, []);
+    setOutputs((prev) => ({ ...prev, [cell.id]: [] }));
+    setKernelError(null);
+
+    try {
+      const client = await getKernelClient();
+      for await (const output of client.execute(cell.source)) {
+        setOutputs((prev) => appendOutput(prev, cell.id, output));
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setKernelError(message);
+      setOutputs((prev) => ({
+        ...prev,
+        [cell.id]: [{ type: "error", ename: "KernelError", evalue: message }],
+      }));
+    } finally {
+      setRunning((prev) => {
+        const next = new Set(prev);
+        next.delete(cell.id);
+        return next;
+      });
+    }
+  }, [getKernelClient]);
 
   const runAll = useCallback(async () => {
     for (const cell of cells) {
@@ -242,6 +284,13 @@ export function NotebookWidget({ notebookId }: NotebookWidgetProps) {
     <div className="notebook">
       <div className="notebook__toolbar">
         <span className="notebook__toolbar-label">Notebook</span>
+        <span
+          className={`notebook__kernel-status notebook__kernel-status--${kernelStatus}`}
+          title={kernelError ?? `Kernel ${statusLabel(kernelStatus)}`}
+        >
+          <span className="notebook__kernel-dot" />
+          {statusLabel(kernelStatus)}
+        </span>
         <div className="notebook__toolbar-actions">
           <button
             className="notebook__toolbar-btn"
@@ -370,7 +419,7 @@ export function NotebookWidget({ notebookId }: NotebookWidgetProps) {
             )}
 
             {cell.type === "code" && outputs[cell.id] && (
-              <CellOutputView output={outputs[cell.id]!} />
+              <CellOutputView outputs={outputs[cell.id]!} />
             )}
           </div>
         ))}

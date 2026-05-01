@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { PositionDetail, PnlPoint } from "@/lib/portfolio-types";
+import type { Position, PositionDetail, PnlPoint } from "@/lib/portfolio-types";
 import { POSITION_SELECTED_EVENT } from "@/lib/portfolio-types";
-import { apiUrl } from "@/lib/api-base";
+import { queryData } from "@/lib/data-query";
+
+interface SnapshotResponse<T> {
+  results: T;
+}
+
+interface TimeseriesResponse {
+  results: Array<{ date: string; value: number }>;
+}
 
 function fmtM(v: number): string {
   const abs = Math.abs(v);
@@ -114,10 +122,21 @@ export function PositionDetailWidget() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(apiUrl(`/api/portfolio/position/${id}`));
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as PositionDetail;
-      setDetail(data);
+      const [positionData, historyData] = await Promise.all([
+        queryData<SnapshotResponse<Position>>({
+          moniker: `portfolio.position/${id}`,
+        }),
+        queryData<TimeseriesResponse>({
+          moniker: `portfolio.position/${id}/pnl-history`,
+        }),
+      ]);
+      setDetail({
+        position: positionData.results,
+        pnlHistory: historyData.results.map((point) => ({
+          date: point.date,
+          unrealizedPnl: point.value,
+        })),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

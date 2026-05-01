@@ -44,7 +44,10 @@ function parseDataQueryRequest(body: unknown): QueryParseResult {
     return { ok: false, error: "moniker is required" };
   }
 
-  if (typeof shape !== "string" || !DATASET_SHAPES.has(shape as DatasetShape)) {
+  if (
+    shape !== undefined &&
+    (typeof shape !== "string" || !DATASET_SHAPES.has(shape as DatasetShape))
+  ) {
     return { ok: false, error: "shape is invalid" };
   }
 
@@ -52,7 +55,7 @@ function parseDataQueryRequest(body: unknown): QueryParseResult {
     ok: true,
     request: {
       moniker,
-      shape: shape as DatasetShape,
+      shape: shape as DatasetShape | undefined,
       params: parseParams(candidate.params),
     },
   };
@@ -84,14 +87,17 @@ dataRouter.get("/route-plan", async (req, res) => {
     return res.status(400).json({ error: "moniker is required" });
   }
 
-  if (typeof shape !== "string" || !DATASET_SHAPES.has(shape as DatasetShape)) {
+  if (
+    shape !== undefined &&
+    (typeof shape !== "string" || !DATASET_SHAPES.has(shape as DatasetShape))
+  ) {
     return res.status(400).json({ error: "shape is invalid" });
   }
 
   try {
     const diagnostics = await resolveRoutePlanDiagnostics({
       moniker,
-      shape: shape as DatasetShape,
+      shape: shape as DatasetShape | undefined,
     });
 
     if (!diagnostics.plan) {

@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import type { PortfolioExposure, ExposureEntry } from "@/lib/portfolio-types";
-import { apiUrl } from "@/lib/api-base";
+import { queryData } from "@/lib/data-query";
+
+interface SnapshotResponse<T> {
+  results: T;
+}
 
 function fmtM(v: number): string {
   if (v >= 1_000_000_000) return `£${(v / 1_000_000_000).toFixed(1)}bn`;
@@ -67,10 +71,10 @@ export function ExposureCardWidget() {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch(apiUrl("/api/portfolio/exposure"));
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as PortfolioExposure;
-        if (!cancelled) setExposure(data);
+        const data = await queryData<SnapshotResponse<PortfolioExposure>>({
+          moniker: "portfolio.exposure",
+        });
+        if (!cancelled) setExposure(data.results);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       } finally {

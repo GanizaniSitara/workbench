@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import type { PortfolioSummary } from "@/lib/portfolio-types";
-import { apiUrl } from "@/lib/api-base";
+import { queryData } from "@/lib/data-query";
+
+interface SnapshotResponse<T> {
+  results: T;
+}
 
 function fmtCcy(v: number, forceSign = false): string {
   const sign = forceSign && v >= 0 ? "+" : "";
@@ -82,10 +86,10 @@ export function PnlSummaryWidget() {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch(apiUrl("/api/portfolio/summary"));
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as PortfolioSummary;
-        if (!cancelled) setSummary(data);
+        const data = await queryData<SnapshotResponse<PortfolioSummary>>({
+          moniker: "portfolio.summary",
+        });
+        if (!cancelled) setSummary(data.results);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       } finally {

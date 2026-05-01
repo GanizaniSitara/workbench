@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import type { Position } from "@/lib/portfolio-types";
 import { dispatchPositionSelected } from "@/lib/portfolio-types";
-import { apiUrl } from "@/lib/api-base";
+import { queryData } from "@/lib/data-query";
 
 type SortKey = keyof Pick<
   Position,
@@ -18,6 +18,10 @@ type SortKey = keyof Pick<
   | "maturityDate"
 >;
 type SortDir = "asc" | "desc";
+
+interface PositionsResponse {
+  results: Position[];
+}
 
 function fmtM(v: number) {
   return `£${(v / 1_000_000).toFixed(1)}m`;
@@ -121,10 +125,10 @@ export function PositionsTableWidget() {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch(apiUrl("/api/portfolio/positions"));
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as { positions: Position[] };
-        if (!cancelled) setPositions(data.positions);
+        const data = await queryData<PositionsResponse>({
+          moniker: "portfolio.positions",
+        });
+        if (!cancelled) setPositions(data.results);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       } finally {

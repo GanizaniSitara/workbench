@@ -64,6 +64,15 @@ const ROUTE_SOURCES = new Set<RouteStep["source"]>([
   "openbb",
   "refinitiv",
   "direct-db",
+  "portfolio-adapter",
+]);
+
+const DATASET_SHAPES = new Set<DatasetShape>([
+  "snapshot",
+  "timeseries",
+  "curve",
+  "table",
+  "news",
 ]);
 
 const FALLBACK_POLICIES = new Set<RoutePlan["policy"]["fallback"]>([
@@ -72,6 +81,87 @@ const FALLBACK_POLICIES = new Set<RoutePlan["policy"]["fallback"]>([
 ]);
 
 export const ROUTE_PLAN_STUBS: RoutePlanStub[] = [
+  {
+    id: "portfolio-positions",
+    shapes: ["table"],
+    match: (canonical) =>
+      canonical === "portfolio.positions" ? { kind: "positions" } : null,
+    routes: [
+      {
+        source: "portfolio-adapter",
+        ref: { kind: { from: "context", name: "kind" } },
+      },
+    ],
+    policy: { fallback: "none", ttlSeconds: 30 },
+  },
+  {
+    id: "portfolio-summary",
+    shapes: ["snapshot"],
+    match: (canonical) =>
+      canonical === "portfolio.summary" ? { kind: "summary" } : null,
+    routes: [
+      {
+        source: "portfolio-adapter",
+        ref: { kind: { from: "context", name: "kind" } },
+      },
+    ],
+    policy: { fallback: "none", ttlSeconds: 30 },
+  },
+  {
+    id: "portfolio-exposure",
+    shapes: ["snapshot"],
+    match: (canonical) =>
+      canonical === "portfolio.exposure" ? { kind: "exposure" } : null,
+    routes: [
+      {
+        source: "portfolio-adapter",
+        ref: { kind: { from: "context", name: "kind" } },
+      },
+    ],
+    policy: { fallback: "none", ttlSeconds: 30 },
+  },
+  {
+    id: "portfolio-position",
+    shapes: ["snapshot"],
+    match: (canonical) => {
+      const parts = canonical.split("/");
+      return parts[0] === "portfolio.position" && parts.length === 2
+        ? { kind: "position", id: parts[1] }
+        : null;
+    },
+    routes: [
+      {
+        source: "portfolio-adapter",
+        ref: {
+          kind: { from: "context", name: "kind" },
+          id: { from: "context", name: "id" },
+        },
+      },
+    ],
+    policy: { fallback: "none", ttlSeconds: 30 },
+  },
+  {
+    id: "portfolio-position-pnl-history",
+    shapes: ["timeseries"],
+    match: (canonical) => {
+      const parts = canonical.split("/");
+      return parts[0] === "portfolio.position" &&
+        parts.length === 3 &&
+        parts[2] === "pnl-history"
+        ? { kind: "pnl-history", id: parts[1] }
+        : null;
+    },
+    routes: [
+      {
+        source: "portfolio-adapter",
+        ref: {
+          kind: { from: "context", name: "kind" },
+          id: { from: "context", name: "id" },
+        },
+      },
+    ],
+    policy: { fallback: "none", ttlSeconds: 30 },
+  },
   {
     id: "vix-equity",
     shapes: ["snapshot"],
@@ -250,7 +340,11 @@ function coerceRoutePlan(
   value: unknown,
   request: DatasetRequest,
 ): RoutePlan | null {
-  if (!isRecord(value) || value.shape !== request.shape) return null;
+  if (!isRecord(value) || !DATASET_SHAPES.has(value.shape as DatasetShape)) {
+    return null;
+  }
+  const shape = value.shape as DatasetShape;
+  if (request.shape && shape !== request.shape) return null;
   if (!Array.isArray(value.routes) || value.routes.length === 0) return null;
   if (
     !isRecord(value.policy) ||
@@ -293,7 +387,7 @@ function coerceRoutePlan(
   return {
     moniker:
       typeof value.moniker === "string" ? value.moniker : request.moniker,
-    shape: request.shape,
+    shape,
     routes,
     policy,
   };
@@ -313,7 +407,9 @@ function routePlanUrl(
     }
 
     url.searchParams.set("moniker", request.moniker);
-    url.searchParams.set("shape", request.shape);
+    if (request.shape) {
+      url.searchParams.set("shape", request.shape);
+    }
 
     for (const [key, value] of Object.entries(request.params ?? {})) {
       if (isRouteRefValue(value)) {
@@ -350,14 +446,15 @@ function resolveStubRoutePlan(request: DatasetRequest): RoutePlan | null {
   const canonical = canonicalMoniker(request.moniker);
 
   for (const stub of ROUTE_PLAN_STUBS) {
-    if (!stub.shapes.includes(request.shape)) continue;
+    if (request.shape && !stub.shapes.includes(request.shape)) continue;
+    if (!request.shape && stub.shapes.length !== 1) continue;
 
     const context = stub.match(canonical, request);
     if (!context) continue;
 
     return {
       moniker: request.moniker,
-      shape: request.shape,
+      shape: request.shape ?? stub.shapes[0],
       routes: stub.routes.map((route) =>
         materializeRoute(route, request, context),
       ),

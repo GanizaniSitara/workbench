@@ -7,6 +7,13 @@ import {
   fetchYieldCurveFromOpenBb,
 } from "./adapters/openbb";
 import {
+  fetchPortfolioExposure,
+  fetchPortfolioPositions,
+  fetchPortfolioSummary,
+  fetchPositionPnlHistory,
+  fetchPositionSnapshot,
+} from "./adapters/portfolio";
+import {
   fetchLatestSeriesFromQuestDb,
   fetchSeriesFromQuestDb,
   fetchYieldCurveFromQuestDb,
@@ -14,7 +21,7 @@ import {
   type YieldPoint,
 } from "./adapters/questdb";
 import { executeRoutePlan } from "./data-router";
-import type { DatasetRequest, DatasetShape } from "./route-plan";
+import type { DatasetRequest, RoutePlan } from "./route-plan";
 import { resolveRoutePlan } from "./route-plan-resolver";
 
 const MACRO_SERIES = [
@@ -69,7 +76,7 @@ interface SeriesResult {
 
 interface SeriesRouteResult {
   results: SeriesPoint[];
-  source: "cache" | "openbb";
+  source: "cache" | "openbb" | "portfolio-adapter";
 }
 
 interface DataQueryEnv {
@@ -88,7 +95,7 @@ export interface TimeseriesQueryResult {
   label: string;
   format: "percent" | "level";
   range: string;
-  source: "cache" | "openbb";
+  source: "cache" | "openbb" | "portfolio-adapter";
   results: SeriesPoint[];
 }
 
@@ -98,10 +105,16 @@ export interface CurveQueryResult {
   results: YieldPoint[];
 }
 
+export interface TableQueryResult {
+  shape: "table";
+  results: Record<string, unknown>[];
+}
+
 export type DataQueryResult =
   | SnapshotQueryResult
   | TimeseriesQueryResult
-  | CurveQueryResult;
+  | CurveQueryResult
+  | TableQueryResult;
 
 export class DataQueryError extends Error {
   constructor(
@@ -420,32 +433,149 @@ async function queryEquityTimeseries(
   throw new DataQueryError(502, `No data returned for ${symbol}`);
 }
 
+function isPortfolioPlan(plan: RoutePlan): boolean {
+  return plan.routes.some((route) => route.source === "portfolio-adapter");
+}
+
+function portfolioPositionId(plan: RoutePlan): string {
+  return String(plan.routes[0]?.ref.id ?? "");
+}
+
+async function queryPortfolioTable(plan: RoutePlan): Promise<TableQueryResult> {
+  const routed = await executeRoutePlan<Record<string, unknown>[]>(plan, {
+    "portfolio-adapter": async (route) => {
+      if (route.ref.kind !== "positions") return null;
+      const positions = await fetchPortfolioPositions();
+      return positions.map((position) => ({ ...position }));
+    },
+  });
+
+  if (routed) {
+    return { shape: "table" as const, results: routed.data };
+  }
+
+  throw new DataQueryError(503, `Portfolio table unavailable: ${plan.moniker}`);
+}
+
+async function queryPortfolioSnapshot(
+  plan: RoutePlan,
+): Promise<SnapshotQueryResult> {
+  const routed = await executeRoutePlan<unknown>(plan, {
+    "portfolio-adapter": async (route) => {
+      const kind = String(route.ref.kind);
+      if (kind === "summary") {
+        return fetchPortfolioSummary(await fetchPortfolioPositions());
+      }
+      if (kind === "exposure") {
+        return fetchPortfolioExposure(await fetchPortfolioPositions());
+      }
+      if (kind === "position") {
+        const position = await fetchPositionSnapshot(String(route.ref.id));
+        if (!position) {
+          throw new DataQueryError(404, "Position not found");
+        }
+        return position;
+      }
+      return null;
+    },
+  });
+
+  if (routed) {
+    return {
+      shape: "snapshot" as const,
+      results: routed.data as SeriesResult[],
+    };
+  }
+
+  throw new DataQueryError(
+    503,
+    `Portfolio snapshot unavailable: ${plan.moniker}`,
+  );
+}
+
+async function queryPortfolioTimeseries(
+  plan: RoutePlan,
+): Promise<TimeseriesQueryResult> {
+  const id = portfolioPositionId(plan);
+  const routed = await executeRoutePlan<SeriesRouteResult>(plan, {
+    "portfolio-adapter": async (route) => {
+      if (route.ref.kind !== "pnl-history") return null;
+      const results = await fetchPositionPnlHistory(String(route.ref.id));
+      if (!results) {
+        throw new DataQueryError(404, "Position not found");
+      }
+      return { results, source: "portfolio-adapter" as const };
+    },
+  });
+
+  if (routed) {
+    return {
+      shape: "timeseries" as const,
+      symbol: id,
+      label: "Position P&L",
+      format: "level",
+      range: "30d",
+      source: routed.data.source,
+      results: routed.data.results,
+    };
+  }
+
+  throw new DataQueryError(
+    503,
+    `Portfolio timeseries unavailable: ${plan.moniker}`,
+  );
+}
+
 export async function queryData(
   request: DatasetRequest,
   env: DataQueryEnv = defaultEnv(),
 ): Promise<DataQueryResult> {
   const canonical = canonicalMoniker(request.moniker);
 
-  if (request.shape === "snapshot") {
-    if (canonical === "reference.rates") {
-      return queryReferenceRatesSnapshot(request, env);
-    }
+  if (request.shape === "snapshot" && canonical === "reference.rates") {
+    return queryReferenceRatesSnapshot(request, env);
+  }
+
+  if (request.shape === "snapshot" && canonical === "macro.indicators") {
     return querySnapshot(request, env);
   }
 
-  if (request.shape === "timeseries") {
-    if (canonical.startsWith("equity.prices/")) {
-      return queryEquityTimeseries(request, env);
+  const routePlan = await resolveRoutePlan(request);
+  if (!routePlan) {
+    throw new DataQueryError(503, "data unavailable");
+  }
+
+  const plannedRequest: DatasetRequest = {
+    ...request,
+    shape: routePlan.shape,
+  };
+
+  if (isPortfolioPlan(routePlan)) {
+    if (routePlan.shape === "table") {
+      return queryPortfolioTable(routePlan);
     }
-    return queryTimeseries(request, env);
+    if (routePlan.shape === "snapshot") {
+      return queryPortfolioSnapshot(routePlan);
+    }
+    if (routePlan.shape === "timeseries") {
+      return queryPortfolioTimeseries(routePlan);
+    }
   }
 
-  if (request.shape === "curve") {
-    return queryCurve(request, env);
+  if (routePlan.shape === "snapshot") {
+    return querySnapshot(plannedRequest, env);
   }
 
-  throw new DataQueryError(
-    400,
-    `Unsupported shape: ${request.shape satisfies DatasetShape}`,
-  );
+  if (routePlan.shape === "timeseries") {
+    if (canonical.startsWith("equity.prices/")) {
+      return queryEquityTimeseries(plannedRequest, env);
+    }
+    return queryTimeseries(plannedRequest, env);
+  }
+
+  if (routePlan.shape === "curve") {
+    return queryCurve(plannedRequest, env);
+  }
+
+  throw new DataQueryError(400, `Unsupported shape: ${routePlan.shape}`);
 }

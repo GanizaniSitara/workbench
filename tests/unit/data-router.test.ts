@@ -141,6 +141,24 @@ describe("resolveRoutePlan", () => {
     });
   });
 
+  it("declares portfolio dataset shape from the route plan", async () => {
+    const plan = await resolveRoutePlan({
+      moniker: "portfolio.positions",
+    });
+
+    expect(plan).toEqual({
+      moniker: "portfolio.positions",
+      shape: "table",
+      routes: [
+        {
+          source: "portfolio-adapter",
+          ref: { kind: "positions" },
+        },
+      ],
+      policy: { fallback: "none", ttlSeconds: 30 },
+    });
+  });
+
   it("uses the Open Moniker route-plan endpoint when configured", async () => {
     process.env.MONIKER_RESOLVER_URL = "http://moniker.test";
     const requestedUrls: string[] = [];
@@ -337,6 +355,24 @@ describe("queryData", () => {
         { maturity: "year20", rate: 3.85 },
         { maturity: "year30", rate: 3.9 },
       ],
+    });
+  });
+
+  it("queries portfolio positions with only a moniker", async () => {
+    const result = await queryData({
+      moniker: "portfolio.positions",
+    });
+
+    expect(result.shape).toBe("table");
+    if (result.shape !== "table") {
+      throw new Error("Expected table result");
+    }
+    expect(result.results).toHaveLength(8);
+    expect(result.results[0]).toMatchObject({
+      id: "pos-001",
+      isin: "GB00BM8Z2S06",
+      description: "UK Gilt 3.75% 2038",
+      marketValue: 9_328_000,
     });
   });
 });

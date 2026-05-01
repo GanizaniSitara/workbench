@@ -1,32 +1,11 @@
-import { Router } from "express";
-
-export const portfolioRouter = Router();
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface Position {
-  id: string;
-  isin: string;
-  description: string;
-  assetClass: "Gilt" | "IL Gilt" | "Corp" | "T-Bill";
-  sector: "Government" | "Financial" | "Corporate";
-  quantity: number;
-  cleanPrice: number;
-  dirtyPrice: number;
-  costPrice: number;
-  marketValue: number;
-  bookValue: number;
-  unrealizedPnl: number;
-  realizedPnl: number;
-  yieldToMaturity: number;
-  duration: number;
-  maturityDate: string;
-  currency: "GBP" | "USD" | "EUR";
-  dayChange: number;
-  dayChangePct: number;
-}
-
-// ─── Mock book ────────────────────────────────────────────────────────────────
+import type {
+  ExposureEntry,
+  PnlPoint,
+  PortfolioExposure,
+  PortfolioSummary,
+  Position,
+} from "../../../lib/portfolio-types";
+import type { SeriesPoint } from "./questdb";
 
 const POSITIONS: Position[] = [
   {
@@ -38,7 +17,7 @@ const POSITIONS: Position[] = [
     quantity: 10_000_000,
     cleanPrice: 92.45,
     dirtyPrice: 93.28,
-    costPrice: 91.20,
+    costPrice: 91.2,
     marketValue: 9_328_000,
     bookValue: 9_120_000,
     unrealizedPnl: 208_000,
@@ -48,7 +27,7 @@ const POSITIONS: Position[] = [
     maturityDate: "2038-10-22",
     currency: "GBP",
     dayChange: -18_500,
-    dayChangePct: -0.20,
+    dayChangePct: -0.2,
   },
   {
     id: "pos-002",
@@ -59,7 +38,7 @@ const POSITIONS: Position[] = [
     quantity: 15_000_000,
     cleanPrice: 97.84,
     dirtyPrice: 98.67,
-    costPrice: 96.10,
+    costPrice: 96.1,
     marketValue: 14_800_500,
     bookValue: 14_415_000,
     unrealizedPnl: 385_500,
@@ -80,7 +59,7 @@ const POSITIONS: Position[] = [
     quantity: 20_000_000,
     cleanPrice: 84.32,
     dirtyPrice: 84.58,
-    costPrice: 98.50,
+    costPrice: 98.5,
     marketValue: 16_916_000,
     bookValue: 19_700_000,
     unrealizedPnl: -2_784_000,
@@ -143,7 +122,7 @@ const POSITIONS: Position[] = [
     quantity: 8_000_000,
     cleanPrice: 99.15,
     dirtyPrice: 100.22,
-    costPrice: 100.00,
+    costPrice: 100,
     marketValue: 8_017_600,
     bookValue: 8_000_000,
     unrealizedPnl: 17_600,
@@ -164,7 +143,7 @@ const POSITIONS: Position[] = [
     quantity: 7_500_000,
     cleanPrice: 96.72,
     dirtyPrice: 97.18,
-    costPrice: 98.10,
+    costPrice: 98.1,
     marketValue: 7_288_500,
     bookValue: 7_357_500,
     unrealizedPnl: -69_000,
@@ -185,7 +164,7 @@ const POSITIONS: Position[] = [
     quantity: 5_000_000,
     cleanPrice: 94.28,
     dirtyPrice: 94.88,
-    costPrice: 95.50,
+    costPrice: 95.5,
     marketValue: 4_744_000,
     bookValue: 4_775_000,
     unrealizedPnl: -31_000,
@@ -199,45 +178,30 @@ const POSITIONS: Position[] = [
   },
 ];
 
-// ─── Routes ──────────────────────────────────────────────────────────────────
+export async function fetchPortfolioPositions(): Promise<Position[]> {
+  return POSITIONS;
+}
 
-portfolioRouter.get("/positions", (_req, res) => {
-  res.json({ positions: POSITIONS });
-});
-
-portfolioRouter.get("/position/:id", (req, res) => {
-  const position = POSITIONS.find((p) => p.id === req.params.id);
-  if (!position) return res.status(404).json({ error: "Position not found" });
-
-  // Deterministic mock P&L history (30 trading days)
-  const seed = position.unrealizedPnl;
-  const pnlHistory = Array.from({ length: 30 }, (_, i) => {
-    const date = new Date("2026-05-01");
-    date.setDate(date.getDate() - (29 - i));
-    const progress = i / 29;
-    const wave = Math.sin(i * 0.7) * Math.abs(seed) * 0.08;
-    const trend = seed * progress;
-    return {
-      date: date.toISOString().split("T")[0],
-      unrealizedPnl: Math.round(trend + wave),
-    };
-  });
-
-  return res.json({ position, pnlHistory });
-});
-
-portfolioRouter.get("/summary", (_req, res) => {
-  const totalMarketValue = POSITIONS.reduce((s, p) => s + p.marketValue, 0);
-  const totalBookValue = POSITIONS.reduce((s, p) => s + p.bookValue, 0);
-  const totalUnrealizedPnl = POSITIONS.reduce((s, p) => s + p.unrealizedPnl, 0);
-  const totalRealizedPnl = POSITIONS.reduce((s, p) => s + p.realizedPnl, 0);
-  const totalDayChange = POSITIONS.reduce((s, p) => s + p.dayChange, 0);
+export async function fetchPortfolioSummary(
+  positions: Position[] = POSITIONS,
+): Promise<PortfolioSummary> {
+  const totalMarketValue = positions.reduce((sum, p) => sum + p.marketValue, 0);
+  const totalBookValue = positions.reduce((sum, p) => sum + p.bookValue, 0);
+  const totalUnrealizedPnl = positions.reduce(
+    (sum, p) => sum + p.unrealizedPnl,
+    0,
+  );
+  const totalRealizedPnl = positions.reduce(
+    (sum, p) => sum + p.realizedPnl,
+    0,
+  );
+  const totalDayChange = positions.reduce((sum, p) => sum + p.dayChange, 0);
   const totalPnl = totalUnrealizedPnl + totalRealizedPnl;
   const weightedDuration =
-    POSITIONS.reduce((s, p) => s + p.duration * p.marketValue, 0) /
+    positions.reduce((sum, p) => sum + p.duration * p.marketValue, 0) /
     totalMarketValue;
 
-  res.json({
+  return {
     totalMarketValue,
     totalBookValue,
     totalUnrealizedPnl,
@@ -248,29 +212,67 @@ portfolioRouter.get("/summary", (_req, res) => {
     totalDayChange,
     dayChangePct: totalDayChange / totalMarketValue,
     weightedDuration,
-    positionCount: POSITIONS.length,
-  });
-});
+    positionCount: positions.length,
+  };
+}
 
-portfolioRouter.get("/exposure", (_req, res) => {
-  const total = POSITIONS.reduce((s, p) => s + p.marketValue, 0);
-
+export async function fetchPortfolioExposure(
+  positions: Position[] = POSITIONS,
+): Promise<PortfolioExposure> {
+  const total = positions.reduce((sum, p) => sum + p.marketValue, 0);
   const byAssetClass = new Map<string, number>();
   const bySector = new Map<string, number>();
 
-  for (const p of POSITIONS) {
-    byAssetClass.set(p.assetClass, (byAssetClass.get(p.assetClass) ?? 0) + p.marketValue);
-    bySector.set(p.sector, (bySector.get(p.sector) ?? 0) + p.marketValue);
+  for (const position of positions) {
+    byAssetClass.set(
+      position.assetClass,
+      (byAssetClass.get(position.assetClass) ?? 0) + position.marketValue,
+    );
+    bySector.set(
+      position.sector,
+      (bySector.get(position.sector) ?? 0) + position.marketValue,
+    );
   }
 
-  const toEntries = (m: Map<string, number>) =>
-    [...m.entries()]
+  const toEntries = (values: Map<string, number>): ExposureEntry[] =>
+    [...values.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([label, value]) => ({ label, value, pct: value / total }));
 
-  res.json({
+  return {
     total,
     byAssetClass: toEntries(byAssetClass),
     bySector: toEntries(bySector),
+  };
+}
+
+export async function fetchPositionSnapshot(
+  id: string,
+): Promise<Position | null> {
+  return POSITIONS.find((position) => position.id === id) ?? null;
+}
+
+export async function fetchPositionPnlHistory(
+  id: string,
+): Promise<SeriesPoint[] | null> {
+  const position = await fetchPositionSnapshot(id);
+  if (!position) return null;
+
+  const seed = position.unrealizedPnl;
+  const history: PnlPoint[] = Array.from({ length: 30 }, (_, index) => {
+    const date = new Date("2026-05-01");
+    date.setDate(date.getDate() - (29 - index));
+    const progress = index / 29;
+    const wave = Math.sin(index * 0.7) * Math.abs(seed) * 0.08;
+    const trend = seed * progress;
+    return {
+      date: date.toISOString().split("T")[0] ?? "",
+      unrealizedPnl: Math.round(trend + wave),
+    };
   });
-});
+
+  return history.map((point) => ({
+    date: point.date,
+    value: point.unrealizedPnl,
+  }));
+}

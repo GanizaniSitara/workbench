@@ -9,7 +9,7 @@ export type DataQueryShape =
 
 export interface DataQueryRequest {
   moniker: string;
-  shape: DataQueryShape;
+  shape?: DataQueryShape;
   params?: Record<string, string | number | boolean | undefined>;
 }
 

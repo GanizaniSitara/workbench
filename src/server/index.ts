@@ -5,7 +5,6 @@ import { chatRouter } from "./routes/chat";
 import { dataRouter } from "./routes/data";
 import { marketRouter } from "./routes/market";
 import { newsRouter } from "./routes/news";
-import { portfolioRouter } from "./routes/portfolio";
 
 const app = express();
 const allowedOrigins = (process.env.FRONTEND_ORIGIN ?? "")
@@ -29,7 +28,6 @@ app.use("/api/chat", chatRouter);
 app.use("/api/data", dataRouter);
 app.use("/api/market", marketRouter);
 app.use("/api/news", newsRouter);
-app.use("/api/portfolio", portfolioRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });

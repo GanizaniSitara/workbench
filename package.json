@@ -21,7 +21,7 @@
     "test:visual": "playwright test --project=visual-desktop",
     "test:visual:update": "playwright test --project=visual-desktop --update-snapshots",
     "test:perf": "playwright test --project=performance",
-    "test:regression": "playwright test",
+    "test:regression": "node scripts/run-playwright-regression.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json"

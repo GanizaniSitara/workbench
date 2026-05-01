@@ -13,7 +13,7 @@ errors, and performance slowdowns are visible before they land.
 | `npm run test:visual` | Visual regression checks against approved screenshots |
 | `npm run test:visual:update` | Refresh approved screenshots after reviewing intentional UI changes |
 | `npm run test:perf` | Browser and API performance budget checks |
-| `npm run test:regression` | Full Playwright API, E2E, visual, and performance suite |
+| `npm run test:regression` | Full Playwright API, E2E, visual, and performance suite; opens the dense HTML report locally |
 
 ## Visual Baselines
 
@@ -61,6 +61,11 @@ payloads that are meant to be read directly during triage.
 The browser helpers in `tests/e2e/helpers/workbench.ts` also catch console
 errors, uncaught page errors, and failed browser requests so hidden breakages do
 not pass silently.
+
+Workbench also writes a dense local report to `playwright-report/dense.html`.
+It summarizes pass/fail counts, per-test timings, slowest tests, and timing
+delta versus previous local runs. Pass history is stored in
+`.test-history/playwright-runs.json`, which is intentionally ignored by git.
 
 ## Local Port Isolation
 

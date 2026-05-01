@@ -4,6 +4,18 @@ const playwrightPort = process.env.PLAYWRIGHT_PORT ?? "3100";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  reporter: [
+    ["list"],
+    ["html", { open: "never", outputFolder: "playwright-report" }],
+    [
+      "./scripts/dense-playwright-reporter.mjs",
+      {
+        outputFile: "playwright-report/dense.html",
+        historyFile: ".test-history/playwright-runs.json",
+        historyLimit: 80,
+      },
+    ],
+  ],
   timeout: 30_000,
   expect: {
     timeout: 7_500,

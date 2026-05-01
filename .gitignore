@@ -14,6 +14,7 @@
 /coverage
 /test-results
 /playwright-report
+/.test-history
 /.playwright-mcp
 
 # framework build artifacts

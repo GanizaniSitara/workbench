@@ -471,30 +471,72 @@ export async function resolveRoutePlan(
   return (await resolveRoutePlanDiagnostics(request)).plan;
 }
 
+export type RoutePlanResolverMode = "direct" | "moniker-service";
+
 export interface RoutePlanDiagnostics {
   plan: RoutePlan | null;
-  mode: "live" | "stub" | "stub-fallback" | "unavailable";
+  mode:
+    | "direct"
+    | "moniker-service"
+    | "moniker-service-fallback"
+    | "unavailable";
+  routingMode: RoutePlanResolverMode;
   resolverUrl?: string;
+}
+
+function routePlanResolverMode(): RoutePlanResolverMode {
+  const raw = (
+    process.env.DATA_ROUTING_MODE ??
+    process.env.MONIKER_ROUTING_MODE ??
+    ""
+  )
+    .trim()
+    .toLowerCase();
+
+  return ["enterprise", "moniker", "moniker-service", "open-moniker"].includes(
+    raw,
+  )
+    ? "moniker-service"
+    : "direct";
 }
 
 export async function resolveRoutePlanDiagnostics(
   request: DatasetRequest,
 ): Promise<RoutePlanDiagnostics> {
-  const resolverUrl = process.env.MONIKER_RESOLVER_URL?.trim();
-  if (resolverUrl) {
-    const livePlan = await resolveLiveRoutePlan(request, resolverUrl);
-    if (livePlan) {
-      return { plan: livePlan, mode: "live", resolverUrl };
-    }
+  const routingMode = routePlanResolverMode();
+  const stubPlan = resolveStubRoutePlan(request);
 
-    const stubPlan = resolveStubRoutePlan(request);
+  if (routingMode === "direct") {
     return {
       plan: stubPlan,
-      mode: stubPlan ? "stub-fallback" : "unavailable",
+      mode: stubPlan ? "direct" : "unavailable",
+      routingMode,
+    };
+  }
+
+  const resolverUrl = process.env.MONIKER_RESOLVER_URL?.trim();
+  if (!resolverUrl) {
+    return {
+      plan: stubPlan,
+      mode: stubPlan ? "moniker-service-fallback" : "unavailable",
+      routingMode,
+    };
+  }
+
+  const livePlan = await resolveLiveRoutePlan(request, resolverUrl);
+  if (livePlan) {
+    return {
+      plan: livePlan,
+      mode: "moniker-service",
+      routingMode,
       resolverUrl,
     };
   }
 
-  const stubPlan = resolveStubRoutePlan(request);
-  return { plan: stubPlan, mode: stubPlan ? "stub" : "unavailable" };
+  return {
+    plan: stubPlan,
+    mode: stubPlan ? "moniker-service-fallback" : "unavailable",
+    routingMode,
+    resolverUrl,
+  };
 }

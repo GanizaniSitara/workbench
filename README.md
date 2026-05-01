@@ -15,7 +15,18 @@ The workspace UI remains in the frontend. Market, news, and chat endpoints now l
 
 The UI should hit one data-facing service for real datasets. Widgets should pass monikers and expected shapes, not provider names or cache details.
 
-Target flow:
+Default local/direct flow:
+
+```text
+React widgets
+  -> Workbench Data API
+  -> local route-plan stubs
+  -> generic data router
+  -> QuestDB / OpenBB / Refinitiv / direct DB adapters
+  -> normalized dataset
+```
+
+Enterprise routing flow:
 
 ```text
 React widgets
@@ -26,9 +37,9 @@ React widgets
   -> normalized dataset
 ```
 
-Open Moniker is the routing brain: it decides which source or ordered source list backs a moniker. The data router is intentionally dumb and horizontally scalable: it executes route plans, calls adapters, normalizes responses, and returns datasets.
+Open Moniker is the optional routing brain: in enterprise mode it decides which source or ordered source list backs a moniker. The data router is intentionally dumb and horizontally scalable: it executes route plans, calls adapters with the route `ref` payload, normalizes responses, and returns datasets.
 
-When `MONIKER_RESOLVER_URL` is configured, `src/server/data-router/route-plan-resolver.ts` reads live route plans from Open Moniker at `GET <url>/route-plan?moniker=<path>&shape=<shape>`. When it is unset, the API uses an explicit route-plan stub for current market datasets. In both modes, unmapped monikers return `"data unavailable"` with no silent provider fallback.
+By default, `src/server/data-router/route-plan-resolver.ts` uses local/direct route-plan stubs for current datasets, even if `MONIKER_RESOLVER_URL` is present. To use Open Moniker route plans, set `DATA_ROUTING_MODE=enterprise` or `MONIKER_ROUTING_MODE=enterprise`; the resolver then calls `GET <url>/route-plan?moniker=<path>&shape=<shape>`. If the service is unavailable for a current dev moniker, local stubs remain as a development fallback.
 
 Detailed data-plane planning notes are kept outside this public repository.
 
@@ -82,7 +93,9 @@ The API service uses:
 - `FRONTEND_ORIGIN` - optional comma-separated CORS allowlist
 - `OPENBB_BASE_URL` - OpenBB-compatible API base URL for market data and preferred news
 - `QUESTDB_URL` - optional QuestDB HTTP endpoint for cache-first market data
-- `MONIKER_RESOLVER_URL` - optional Open Moniker route-plan resolver; unset uses local route-plan stubs
+- `DATA_ROUTING_MODE` - optional data routing mode; default `direct`, set `enterprise` to use Open Moniker route plans
+- `MONIKER_ROUTING_MODE` - optional alias for `DATA_ROUTING_MODE`; values `enterprise`, `moniker`, `moniker-service`, and `open-moniker` enable Open Moniker route plans
+- `MONIKER_RESOLVER_URL` - optional Open Moniker route-plan resolver URL used only when enterprise routing mode is enabled
 - `OLLAMA_BASE_URL` - optional Ollama endpoint for `/api/chat`
 - `OLLAMA_MODEL` - optional Ollama model name for `/api/chat`
 

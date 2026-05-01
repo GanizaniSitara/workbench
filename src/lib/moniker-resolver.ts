@@ -12,9 +12,9 @@ interface OmResolveResponse {
   cache_ttl_hint?: number;
 }
 
-// Stub map: canonical moniker path (no date@/filter@ segments) → resolution.
-// Used when MONIKER_RESOLVER_URL is not configured so widget props are already
-// moniker-based and the live resolver drops in without touching widget code.
+// Stub map: canonical moniker path (no date@/filter@ segments) -> resolution.
+// Used in direct routing mode so widget props are already moniker-based and the
+// live resolver can be enabled without touching widget code.
 const STUB_MAP: Record<string, MonikerResolution> = {
   "macro.indicators/FEDFUNDS": {
     sourceType: "fred",
@@ -61,20 +61,18 @@ const STUB_MAP: Record<string, MonikerResolution> = {
 /**
  * Resolve a moniker path to its source binding.
  *
- * When MONIKER_RESOLVER_URL is set, calls the Open Moniker HTTP resolver at
- * GET <url>/resolve/<path>. A 404 from the resolver means the moniker is
- * unmapped — callers must treat null as "data unavailable" with no silent
- * fallback to a hardcoded provider.
+ * When DATA_ROUTING_MODE or MONIKER_ROUTING_MODE is set to an enterprise
+ * moniker mode, calls the Open Moniker HTTP resolver at GET <url>/resolve/<path>.
+ * A 404 from the resolver means the moniker is unmapped.
  *
- * When MONIKER_RESOLVER_URL is unset, returns from the static stub map so
- * widget props are already moniker-based before the live resolver is wired.
+ * Direct mode is the default and returns from the static stub map.
  */
 export async function resolveMoniker(
   moniker: string,
 ): Promise<MonikerResolution | null> {
   const resolverUrl = process.env.MONIKER_RESOLVER_URL;
 
-  if (resolverUrl) {
+  if (resolverUrl && usesMonikerServiceRouting()) {
     try {
       const res = await fetch(`${resolverUrl}/resolve/${moniker}`);
       if (res.status === 404) return null;
@@ -102,4 +100,17 @@ export async function resolveMoniker(
     .replace(/\/date@[^/]*/g, "")
     .replace(/\/filter@[^/]*/g, "");
   return STUB_MAP[canonicalPath] ?? null;
+}
+
+function usesMonikerServiceRouting(): boolean {
+  const raw = (
+    process.env.DATA_ROUTING_MODE ??
+    process.env.MONIKER_ROUTING_MODE ??
+    ""
+  )
+    .trim()
+    .toLowerCase();
+  return ["enterprise", "moniker", "moniker-service", "open-moniker"].includes(
+    raw,
+  );
 }

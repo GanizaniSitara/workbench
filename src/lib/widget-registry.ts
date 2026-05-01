@@ -1,7 +1,7 @@
 import type { LayoutItem, WidgetType } from "@/lib/layout";
 
-export type WidgetCategory = "Markets" | "Research" | "AI" | "Workbench";
-export type WidgetDataKind = "macro" | "rates" | "equity" | "news" | "chat";
+export type WidgetCategory = "Markets" | "Research" | "AI" | "Workbench" | "Portfolio";
+export type WidgetDataKind = "macro" | "rates" | "equity" | "news" | "chat" | "portfolio";
 
 export interface WidgetRegistryEntry {
   type: WidgetType;
@@ -122,7 +122,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     type: "notebook",
     title: "Notebook",
     description:
-      "Interactive scratchpad with code cells (wbn.fred, wbn.equity, wbn.curve…) and markdown.",
+      "Interactive scratchpad with code cells (wbn.fred, wbn.equity, wbn.curve...) and markdown.",
     category: "Workbench",
     idPrefix: "notebook",
     supportedDataKinds: ["macro", "rates", "equity"],
@@ -155,6 +155,42 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     supportedDataKinds: ["news", "equity"],
     defaultLayout: { w: 6, h: 10, minW: 3, minH: 5 },
   },
+  {
+    type: "positions-table",
+    title: "Positions",
+    description: "Sortable live positions table with P&L and risk metrics.",
+    category: "Portfolio",
+    idPrefix: "positions",
+    supportedDataKinds: ["portfolio"],
+    defaultLayout: { w: 8, h: 10, minW: 5, minH: 5 },
+  },
+  {
+    type: "pnl-summary",
+    title: "P&L Summary",
+    description: "Top-line P&L, day change, and portfolio duration tiles.",
+    category: "Portfolio",
+    idPrefix: "pnl",
+    supportedDataKinds: ["portfolio"],
+    defaultLayout: { w: 12, h: 4, minW: 6, minH: 3 },
+  },
+  {
+    type: "exposure-card",
+    title: "Exposure",
+    description: "Exposure breakdown by asset class and sector with bar charts.",
+    category: "Portfolio",
+    idPrefix: "exposure",
+    supportedDataKinds: ["portfolio"],
+    defaultLayout: { w: 4, h: 10, minW: 3, minH: 5 },
+  },
+  {
+    type: "position-detail",
+    title: "Position Detail",
+    description: "Drill-down panel for a selected position with P&L history.",
+    category: "Portfolio",
+    idPrefix: "detail",
+    supportedDataKinds: ["portfolio"],
+    defaultLayout: { w: 12, h: 8, minW: 5, minH: 4 },
+  },
 ];
 
 export const WIDGET_CATEGORIES: WidgetCategory[] = [
@@ -162,6 +198,7 @@ export const WIDGET_CATEGORIES: WidgetCategory[] = [
   "Research",
   "AI",
   "Workbench",
+  "Portfolio",
 ];
 
 export function getWidgetRegistryEntry(type: WidgetType): WidgetRegistryEntry {

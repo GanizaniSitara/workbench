@@ -5,11 +5,16 @@ export type DatasetShape =
   | "table"
   | "news";
 
-export type RouteSource = "questdb" | "openbb" | "refinitiv" | "direct-db";
+export type RouteSource =
+  | "questdb"
+  | "openbb"
+  | "refinitiv"
+  | "direct-db"
+  | "portfolio-adapter";
 
 export interface DatasetRequest {
   moniker: string;
-  shape: DatasetShape;
+  shape?: DatasetShape;
   params?: Record<string, string | number | boolean | undefined>;
 }
 

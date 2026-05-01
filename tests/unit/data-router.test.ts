@@ -2,11 +2,16 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { executeRoutePlan } from "../../src/server/data-router/data-router";
 import { queryData } from "../../src/server/data-router/query-service";
-import { resolveRoutePlan } from "../../src/server/data-router/route-plan-resolver";
+import {
+  resolveRoutePlan,
+  resolveRoutePlanDiagnostics,
+} from "../../src/server/data-router/route-plan-resolver";
 import type { RoutePlan } from "../../src/server/data-router/route-plan";
 
 const originalFetch = globalThis.fetch;
 const originalMonikerResolverUrl = process.env.MONIKER_RESOLVER_URL;
+const originalDataRoutingMode = process.env.DATA_ROUTING_MODE;
+const originalMonikerRoutingMode = process.env.MONIKER_ROUTING_MODE;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
@@ -14,6 +19,16 @@ afterEach(() => {
     delete process.env.MONIKER_RESOLVER_URL;
   } else {
     process.env.MONIKER_RESOLVER_URL = originalMonikerResolverUrl;
+  }
+  if (originalDataRoutingMode === undefined) {
+    delete process.env.DATA_ROUTING_MODE;
+  } else {
+    process.env.DATA_ROUTING_MODE = originalDataRoutingMode;
+  }
+  if (originalMonikerRoutingMode === undefined) {
+    delete process.env.MONIKER_ROUTING_MODE;
+  } else {
+    process.env.MONIKER_ROUTING_MODE = originalMonikerRoutingMode;
   }
 });
 
@@ -141,7 +156,52 @@ describe("resolveRoutePlan", () => {
     });
   });
 
-  it("uses the Open Moniker route-plan endpoint when configured", async () => {
+  it("declares portfolio dataset shape from the route plan", async () => {
+    const plan = await resolveRoutePlan({
+      moniker: "portfolio.positions",
+    });
+
+    expect(plan).toEqual({
+      moniker: "portfolio.positions",
+      shape: "table",
+      routes: [
+        {
+          source: "portfolio-adapter",
+          ref: { kind: "positions" },
+        },
+      ],
+      policy: { fallback: "none", ttlSeconds: 30 },
+    });
+  });
+
+  it("uses direct route-plan stubs by default even when the resolver URL is configured", async () => {
+    process.env.MONIKER_RESOLVER_URL = "http://moniker.test";
+    const requestedUrls: string[] = [];
+
+    globalThis.fetch = async (input) => {
+      requestedUrls.push(String(input));
+      return new Response(JSON.stringify({ error: "should not be called" }), {
+        status: 500,
+      });
+    };
+
+    const diagnostics = await resolveRoutePlanDiagnostics({
+      moniker: "macro.indicators/DGS10/date@latest",
+      shape: "timeseries",
+      params: { limit: 31 },
+    });
+
+    expect(requestedUrls).toEqual([]);
+    expect(diagnostics.mode).toBe("direct");
+    expect(diagnostics.routingMode).toBe("direct");
+    expect(diagnostics.plan?.routes.map((route) => route.source)).toEqual([
+      "questdb",
+      "openbb",
+    ]);
+  });
+
+  it("uses the Open Moniker route-plan endpoint in enterprise routing mode", async () => {
+    process.env.DATA_ROUTING_MODE = "enterprise";
     process.env.MONIKER_RESOLVER_URL = "http://moniker.test";
     const requestedUrls: string[] = [];
 
@@ -201,7 +261,8 @@ describe("resolveRoutePlan", () => {
     });
   });
 
-  it("falls back to local stubs when the live resolver returns 404", async () => {
+  it("falls back to local stubs in enterprise routing mode when the live resolver returns 404", async () => {
+    process.env.DATA_ROUTING_MODE = "enterprise";
     process.env.MONIKER_RESOLVER_URL = "http://moniker.test";
 
     globalThis.fetch = async () =>
@@ -337,6 +398,24 @@ describe("queryData", () => {
         { maturity: "year20", rate: 3.85 },
         { maturity: "year30", rate: 3.9 },
       ],
+    });
+  });
+
+  it("queries portfolio positions with only a moniker", async () => {
+    const result = await queryData({
+      moniker: "portfolio.positions",
+    });
+
+    expect(result.shape).toBe("table");
+    if (result.shape !== "table") {
+      throw new Error("Expected table result");
+    }
+    expect(result.results).toHaveLength(8);
+    expect(result.results[0]).toMatchObject({
+      id: "pos-001",
+      isin: "GB00BM8Z2S06",
+      description: "UK Gilt 3.75% 2038",
+      marketValue: 9_328_000,
     });
   });
 });

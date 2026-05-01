@@ -16,6 +16,10 @@ const LABELS: Record<WidgetType, string> = {
   "news-feed": "News feed widget",
   "event-context": "Event context widget",
   "research-panel": "Research panel widget",
+  "positions-table": "Positions table widget",
+  "pnl-summary": "P&L summary widget",
+  "exposure-card": "Exposure card widget",
+  "position-detail": "Position detail widget",
 };
 
 interface PlaceholderWidgetProps {

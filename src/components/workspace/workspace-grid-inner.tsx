@@ -20,6 +20,10 @@ import { NotebookWidget } from "@/components/widgets/notebook-widget";
 import { OverlayChartWidget } from "@/components/widgets/overlay-chart-widget";
 import { ResearchPanelWidget } from "@/components/widgets/research-panel-widget";
 import { YieldCurveWidget } from "@/components/widgets/yield-curve-widget";
+import { PositionsTableWidget } from "@/components/widgets/positions-table-widget";
+import { PnlSummaryWidget } from "@/components/widgets/pnl-summary-widget";
+import { ExposureCardWidget } from "@/components/widgets/exposure-card-widget";
+import { PositionDetailWidget } from "@/components/widgets/position-detail-widget";
 import type { WidgetDefinition } from "@/lib/layout";
 
 const WidthAdaptiveGrid = WidthProvider(GridLayout);
@@ -56,6 +60,14 @@ function renderWidget(widget: WidgetDefinition) {
       return <EventContextWidget />;
     case "research-panel":
       return <ResearchPanelWidget />;
+    case "positions-table":
+      return <PositionsTableWidget />;
+    case "pnl-summary":
+      return <PnlSummaryWidget />;
+    case "exposure-card":
+      return <ExposureCardWidget />;
+    case "position-detail":
+      return <PositionDetailWidget />;
     default:
       return <PlaceholderWidget type={widget.type} />;
   }

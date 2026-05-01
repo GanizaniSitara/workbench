@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   captureBrowserDiagnostics,
   mockStableWorkbenchApis,
+  mockStableWidgetData,
   openCleanWorkbench,
   switchToScreen,
 } from "./helpers/workbench";
@@ -9,6 +10,51 @@ import {
 test.describe("@visual workbench regression", () => {
   test.beforeEach(async ({ page }) => {
     await mockStableWorkbenchApis(page);
+    await mockStableWidgetData(page);
+  });
+
+  test("markets screen visual baseline", async ({ page }) => {
+    const diagnostics = captureBrowserDiagnostics(page);
+
+    await openCleanWorkbench(page);
+    await switchToScreen(page, "Screen 1");
+
+    await expect(page.getByLabel("Macro indicators")).toContainText(
+      "Fed Funds Rate",
+    );
+    await expect(page.getByLabel("Macro indicators")).toContainText(
+      "10Y Treasury",
+    );
+    await expect(page.getByText("Treasury curve steepens")).toBeVisible();
+    await expect(page.locator(".workspace")).toHaveScreenshot(
+      "markets-screen.png",
+      {
+        maxDiffPixelRatio: 0.012,
+      },
+    );
+
+    await diagnostics.assertClean();
+  });
+
+  test("rates and equity screen visual baseline", async ({ page }) => {
+    const diagnostics = captureBrowserDiagnostics(page);
+
+    await openCleanWorkbench(page);
+    await switchToScreen(page, "Screen 2");
+
+    await expect(page.getByLabel("Reference rates", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Reference rates", { exact: true })).toContainText(
+      "SONIA",
+    );
+    await expect(page.getByText("$211.05")).toBeVisible();
+    await expect(page.locator(".workspace")).toHaveScreenshot(
+      "rates-equity-screen.png",
+      {
+        maxDiffPixelRatio: 0.012,
+      },
+    );
+
+    await diagnostics.assertClean();
   });
 
   test("portfolio screen visual baseline", async ({ page }) => {

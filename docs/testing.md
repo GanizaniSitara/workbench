@@ -21,6 +21,10 @@ Visual tests live in `tests/e2e/visual-regression.spec.ts` and use Playwright
 `toHaveScreenshot`. Baselines are project-specific, so changes in browser,
 viewport, or OS rendering should be reviewed before updating.
 
+Visual and widget contract tests use fixture-backed API responses from
+`tests/e2e/helpers/workbench.ts`. This keeps UI diffs stable and ensures
+network or vendor-data noise does not hide real layout changes.
+
 Use this workflow for intentional visual changes:
 
 1. Run `npm run test:visual`.

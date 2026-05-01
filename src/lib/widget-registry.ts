@@ -101,6 +101,16 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     defaultLayout: { w: 8, h: 10, minW: 4, minH: 4 },
   },
   {
+    type: "catalog",
+    title: "Business Catalog",
+    description: "Card catalog for datasets, files, APIs, and applications.",
+    category: "Workbench",
+    idPrefix: "catalog",
+    singleton: true,
+    supportedDataKinds: ["macro", "rates", "equity", "portfolio", "news"],
+    defaultLayout: { w: 12, h: 20, minW: 8, minH: 12 },
+  },
+  {
     type: "placeholder-chart",
     title: "Chart",
     description: "Placeholder price chart slot for WBN-005.",
@@ -205,4 +215,10 @@ export function getWidgetRegistryEntry(type: WidgetType): WidgetRegistryEntry {
   const entry = WIDGET_REGISTRY.find((item) => item.type === type);
   if (!entry) throw new Error(`Unknown widget type: ${type}`);
   return entry;
+}
+
+export function widgetSupportsMoniker(type: WidgetType): boolean {
+  const entry = WIDGET_REGISTRY.find((item) => item.type === type);
+  if (!entry) return false;
+  return entry.category === "Markets" || entry.category === "Portfolio";
 }

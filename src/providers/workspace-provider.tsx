@@ -36,6 +36,7 @@ interface WorkspaceContextValue {
   addWidgetByType: (type: WidgetType) => void;
   duplicateWidget: (widgetId: string) => void;
   removeWidget: (widgetId: string) => void;
+  updateWidgetConfig: (widgetId: string, config: Record<string, string>) => void;
   resetLayout: () => void;
   restoreWidget: () => void;
   toggleMaximizedWidget: (widgetId: string) => void;
@@ -83,12 +84,16 @@ function updateActiveScreen(
   };
 }
 
+function defaultMaximizedWidgetId(screen: Screen | undefined): string | null {
+  return screen?.widgets.find((widget) => widget.type === "notebook")?.id ?? null;
+}
+
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [fullLayout, setFullLayout] = useState<WorkspaceLayout>(() =>
     buildDefaultLayout(DEV_USER_ID),
   );
   const [maximizedWidgetId, setMaximizedWidgetId] = useState<string | null>(
-    null,
+    "notebook-jupyter",
   );
 
   // After mount, hydrate from localStorage (deferred so it doesn't cascade with SSR render)
@@ -105,7 +110,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         ),
       })),
     };
-    startTransition(() => setFullLayout(patched));
+    startTransition(() => {
+      setFullLayout(patched);
+      setMaximizedWidgetId(
+        defaultMaximizedWidgetId(
+          patched.screens.find((screen) => screen.id === patched.activeScreenId),
+        ),
+      );
+    });
   }, []);
 
   useEffect(() => {
@@ -237,10 +249,25 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const updateWidgetConfig = useCallback(
+    (widgetId: string, config: Record<string, string>) => {
+      setFullLayout((prev) =>
+        updateActiveScreen(prev, (s) => ({
+          ...s,
+          widgets: s.widgets.map((w) =>
+            w.id === widgetId
+              ? { ...w, config: { ...w.config, ...config } }
+              : w,
+          ),
+        })),
+      );
+    },
+    [],
+  );
+
   const resetLayout = useCallback(() => {
-    setMaximizedWidgetId(null);
     const base = buildDefaultLayout(DEV_USER_ID);
-    setFullLayout({
+    const nextLayout = {
       ...base,
       screens: base.screens.map((screen) => ({
         ...screen,
@@ -250,7 +277,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             : w,
         ),
       })),
-    });
+    };
+    setMaximizedWidgetId(
+      defaultMaximizedWidgetId(
+        nextLayout.screens.find((screen) => screen.id === nextLayout.activeScreenId),
+      ),
+    );
+    setFullLayout(nextLayout);
   }, []);
 
   const restoreWidget = useCallback(() => {
@@ -262,8 +295,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setActiveScreenId = useCallback((id: string) => {
-    setMaximizedWidgetId(null);
-    setFullLayout((prev) => ({ ...prev, activeScreenId: id }));
+    setFullLayout((prev) => {
+      const nextActiveScreen = prev.screens.find((screen) => screen.id === id);
+      setMaximizedWidgetId(defaultMaximizedWidgetId(nextActiveScreen));
+      return { ...prev, activeScreenId: id };
+    });
   }, []);
 
   const addScreen = useCallback(() => {
@@ -302,6 +338,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         addWidgetByType,
         duplicateWidget,
         removeWidget,
+        updateWidgetConfig,
         resetLayout,
         restoreWidget,
         toggleMaximizedWidget,

@@ -24,6 +24,7 @@ import { PositionsTableWidget } from "@/components/widgets/positions-table-widge
 import { PnlSummaryWidget } from "@/components/widgets/pnl-summary-widget";
 import { ExposureCardWidget } from "@/components/widgets/exposure-card-widget";
 import { PositionDetailWidget } from "@/components/widgets/position-detail-widget";
+import { CatalogWidget } from "@/components/widgets/catalog-widget";
 import type { WidgetDefinition } from "@/lib/layout";
 
 const WidthAdaptiveGrid = WidthProvider(GridLayout);
@@ -48,6 +49,8 @@ function renderWidget(widget: WidgetDefinition) {
       return <EquityChartWidget moniker={widget.config?.moniker} />;
     case "overlay-chart":
       return <OverlayChartWidget />;
+    case "catalog":
+      return <CatalogWidget />;
     case "notebook":
       return <JupyterLabWidget />;
     case "news-feed":
@@ -108,6 +111,7 @@ export default function WorkspaceGridInner() {
             .join(" ")}
         >
           <WidgetChrome
+            moniker={widget.config?.moniker}
             widgetId={widget.id}
             widgetType={widget.type}
             title={widget.title}

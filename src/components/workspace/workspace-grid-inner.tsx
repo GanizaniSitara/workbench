@@ -8,6 +8,7 @@ import { useWorkspace } from "@/providers/workspace-provider";
 import { WidgetChrome } from "@/components/workspace/widget-chrome";
 import { AiChatWidget } from "@/components/widgets/ai-chat-widget";
 import { EquityChartWidget } from "@/components/widgets/equity-chart-widget";
+import { GenericChartWidget } from "@/components/widgets/generic-chart-widget";
 import { MacroStripWidget } from "@/components/widgets/macro-strip-widget";
 import { MacroTimeseriesWidget } from "@/components/widgets/macro-timeseries-widget";
 import { MacroWatchlistWidget } from "@/components/widgets/macro-watchlist-widget";
@@ -110,6 +111,16 @@ function renderWidget(
           moniker={moniker}
           onMonikerChange={(nextMoniker) =>
             updateWidgetConfig(widget.id, { moniker: nextMoniker })
+          }
+        />
+      );
+    case "chart":
+      return (
+        <GenericChartWidget
+          moniker={moniker}
+          seriesConfig={widget.config?.chartSeries}
+          onConfigChange={(nextConfig) =>
+            updateWidgetConfig(widget.id, nextConfig)
           }
         />
       );

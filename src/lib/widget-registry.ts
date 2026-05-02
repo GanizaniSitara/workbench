@@ -111,6 +111,15 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     defaultLayout: { w: 8, h: 10, minW: 4, minH: 4 },
   },
   {
+    type: "chart",
+    title: "Chart",
+    description: "Generic moniker-driven chart with searchable series selection.",
+    category: "Markets",
+    idPrefix: "chart",
+    supportedDataKinds: ["macro", "rates", "equity", "portfolio"],
+    defaultLayout: { w: 12, h: 12, minW: 6, minH: 8 },
+  },
+  {
     type: "overlay-chart",
     title: "Overlay Chart",
     description:

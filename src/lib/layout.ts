@@ -5,6 +5,7 @@ export type WidgetType =
   | "macro-watchlist"
   | "reference-rates"
   | "equity-chart"
+  | "chart"
   | "placeholder-chart"
   | "placeholder-watchlist"
   | "placeholder-chat"
@@ -45,16 +46,17 @@ export interface Screen {
 }
 
 export interface WorkspaceLayout {
-  version: 10;
+  version: 11;
   userId: string;
   screens: Screen[];
   activeScreenId: string;
 }
 
 export const CATALOG_SCREEN_ID = "screen-catalog";
+export const CHARTS_SCREEN_ID = "screen-charts";
 
 const STORAGE_KEY = "workbench-layout-v1";
-const LAYOUT_VERSION = 10;
+const LAYOUT_VERSION = 11;
 
 const SCREEN1_WIDGETS: WidgetDefinition[] = [
   { id: "macro-1", type: "macro-strip", title: "Macro" },
@@ -136,12 +138,33 @@ const CATALOG_GRID: LayoutItem[] = [
   { i: "catalog-main", x: 0, y: 0, w: 12, h: 20, minW: 8, minH: 12 },
 ];
 
+const CHARTS_WIDGETS: WidgetDefinition[] = [
+  {
+    id: "chart-main",
+    type: "chart",
+    title: "Chart",
+  },
+];
+
+const CHARTS_GRID: LayoutItem[] = [
+  { i: "chart-main", x: 0, y: 0, w: 12, h: 14, minW: 6, minH: 8 },
+];
+
 function buildCatalogScreen(): Screen {
   return {
     id: CATALOG_SCREEN_ID,
     name: "Catalog",
     widgets: structuredClone(CATALOG_WIDGETS),
     grid: structuredClone(CATALOG_GRID),
+  };
+}
+
+function buildChartsScreen(): Screen {
+  return {
+    id: CHARTS_SCREEN_ID,
+    name: "Charts",
+    widgets: structuredClone(CHARTS_WIDGETS),
+    grid: structuredClone(CHARTS_GRID),
   };
 }
 
@@ -292,6 +315,15 @@ function withCatalogScreen(screens: Screen[]): Screen[] {
   return [...withoutCatalog, buildCatalogScreen()];
 }
 
+function withChartsScreen(screens: Screen[]): Screen[] {
+  const withoutCharts = screens.filter(
+    (screen) =>
+      screen.id !== CHARTS_SCREEN_ID &&
+      screen.name.trim().toLowerCase() !== "charts",
+  );
+  return [...withoutCharts, buildChartsScreen()];
+}
+
 function withPortfolioScreen(screens: Screen[]): Screen[] {
   const withoutPortfolio = screens.filter(
     (screen) =>
@@ -304,11 +336,10 @@ function withPortfolioScreen(screens: Screen[]): Screen[] {
 }
 
 function withDefaultScreens(screens: Screen[]): Screen[] {
-  return withCatalogScreen(withPortfolioScreen(withJupyterScreen(screens))).map(
-    (screen) =>
-      normalizeHomeGdeltLayout(
-        normalizeScreenGrid(normalizeScreenName(screen)),
-      ),
+  return withChartsScreen(
+    withCatalogScreen(withPortfolioScreen(withJupyterScreen(screens))),
+  ).map((screen) =>
+    normalizeHomeGdeltLayout(normalizeScreenGrid(normalizeScreenName(screen))),
   );
 }
 
@@ -343,6 +374,7 @@ export function buildDefaultLayout(userId: string): WorkspaceLayout {
         grid: structuredClone(PORTFOLIO_GRID),
       },
       buildCatalogScreen(),
+      buildChartsScreen(),
     ],
   };
 }
@@ -378,11 +410,12 @@ export function loadLayout(userId: string): WorkspaceLayout {
           defaults.screens[2],
           defaults.screens[3],
           defaults.screens[4],
+          defaults.screens[5],
         ],
       };
     }
 
-    // Migrate v4/v5/v6 -> v10: preserve existing screens and ensure default screens.
+    // Migrate v4/v5/v6 -> v11: preserve existing screens and ensure default screens.
     if (
       (parsed.version === 4 || parsed.version === 5 || parsed.version === 6) &&
       parsed.userId === userId
@@ -395,9 +428,12 @@ export function loadLayout(userId: string): WorkspaceLayout {
       };
     }
 
-    // Migrate v7/v8/v9 -> v10: add catalog screen and normalize default grids.
+    // Migrate v7/v8/v9/v10 -> v11: add catalog/charts screens and normalize default grids.
     if (
-      (parsed.version === 7 || parsed.version === 8 || parsed.version === 9) &&
+      (parsed.version === 7 ||
+        parsed.version === 8 ||
+        parsed.version === 9 ||
+        parsed.version === 10) &&
       parsed.userId === userId
     ) {
       return {

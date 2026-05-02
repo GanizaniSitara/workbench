@@ -1,0 +1,149 @@
+body[data-workbench-bridge="true"] {
+  background: #1a223f;
+}
+
+body[data-workbench-bridge="true"] .jp-LabShell {
+  background: #1a223f;
+}
+
+body[data-workbench-bridge="true"] .jp-LabShell .jp-SideBar,
+body[data-workbench-bridge="true"] .jp-LabShell .jp-RightArea {
+  display: none !important;
+}
+
+body[data-workbench-bridge="true"] #jp-left-stack {
+  display: none !important;
+}
+
+body[data-workbench-bridge="true"] #jp-top-panel {
+  display: none !important;
+}
+
+body[data-workbench-bridge="true"] #jp-main-content-panel,
+body[data-workbench-bridge="true"] #jp-main-vsplit-panel,
+body[data-workbench-bridge="true"] #jp-main-split-panel,
+body[data-workbench-bridge="true"] #jp-main-dock-panel {
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+body[data-workbench-bridge="true"] .lm-DockPanel-tabBar,
+body[data-workbench-bridge="true"] .jp-NotebookPanel-toolbar,
+body[data-workbench-bridge="true"] .jp-StatusBar,
+body[data-workbench-bridge="true"] #jp-bottom-panel,
+body[data-workbench-bridge="true"] #jp-main-statusbar,
+body[data-workbench-bridge="true"] .jp-Notebook-footer,
+body[data-workbench-bridge="true"] .jp-collapseHeadingButton,
+body[data-workbench-bridge="true"] .jp-Cell-toolbar,
+body[data-workbench-bridge="true"] .jp-CellToolbar,
+body[data-workbench-bridge="true"] .jp-cell-toolbar,
+body[data-workbench-bridge="true"] .jp-Notebook-cellToolbar {
+  display: none !important;
+}
+
+body[data-workbench-bridge="true"] .jp-NotebookPanel,
+body[data-workbench-bridge="true"] .jp-NotebookPanel-toolbar {
+  background: #1a223f;
+  border-bottom: 1px solid rgba(189, 200, 240, 0.12);
+  min-height: 30px;
+}
+
+body[data-workbench-bridge="true"] .jp-MainAreaWidget,
+body[data-workbench-bridge="true"] .jp-NotebookPanel {
+  top: 0 !important;
+  height: 100% !important;
+}
+
+body[data-workbench-bridge="true"] .jp-NotebookPanel .jp-NotebookPanel-notebook {
+  bottom: 0 !important;
+  top: 0 !important;
+  height: 100% !important;
+}
+
+body[data-workbench-bridge="true"] .jp-NotebookPanel-notebook {
+  background: #1a223f;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook {
+  background: #1a223f;
+  padding: 0 2px 24px;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .jp-Cell {
+  border-radius: 3px;
+  margin-left: 0;
+  margin-right: 0;
+  max-width: none;
+  padding: 0 !important;
+  width: 100%;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .jp-Cell.jp-mod-active,
+body[data-workbench-bridge="true"] .jp-Notebook .jp-Cell.jp-mod-selected {
+  border-color: rgba(189, 200, 240, 0.18) !important;
+  box-shadow: none !important;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .jp-Cell.jp-mod-active::before,
+body[data-workbench-bridge="true"] .jp-Notebook .jp-Cell.jp-mod-selected::before {
+  background: #8892b0 !important;
+  opacity: 0.55;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .jp-InputCollapser,
+body[data-workbench-bridge="true"] .jp-Notebook .jp-OutputCollapser {
+  display: none !important;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .jp-Cell-inputWrapper,
+body[data-workbench-bridge="true"] .jp-Notebook .jp-Cell-outputWrapper {
+  margin-top: 0;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .jp-InputPrompt,
+body[data-workbench-bridge="true"] .jp-Notebook .jp-OutputPrompt {
+  display: none !important;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .jp-RenderedHTMLCommon {
+  color: #e9eef5;
+  padding: 4px 8px 6px;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .jp-MarkdownCell .jp-RenderedHTMLCommon h1 {
+  color: #f4f7fb;
+  font-size: 1.6rem;
+  letter-spacing: 0;
+  margin-bottom: 0.65rem;
+  margin-top: 0;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .jp-MarkdownCell .jp-RenderedHTMLCommon p {
+  color: #d1dae5;
+  line-height: 1.55;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .jp-MarkdownCell code,
+body[data-workbench-bridge="true"] .jp-Notebook .jp-RenderedHTMLCommon code {
+  background: #2a3138;
+  border-radius: 3px;
+  color: #f4f7fb;
+  padding: 0.08rem 0.22rem;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .jp-InputArea-editor {
+  background: #293150;
+  border: 1px solid rgba(189, 200, 240, 0.14);
+  border-radius: 3px;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .cm-editor {
+  background: transparent;
+}
+
+body[data-workbench-bridge="true"] .jp-Notebook .cm-gutters {
+  background: #293150;
+  border-right: 1px solid rgba(189, 200, 240, 0.12);
+}

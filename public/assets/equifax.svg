@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">
+  <rect width="40" height="40" rx="4" fill="#A6192E"/>
+  <path d="M8 20 L16 12 L16 17 L32 17 L32 23 L16 23 L16 28 Z" fill="white" opacity="0.9"/>
+  <text x="27" y="35" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="700" font-size="6" opacity="0.8">EFX</text>
+</svg>

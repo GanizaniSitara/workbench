@@ -17,7 +17,7 @@ test.describe("@visual workbench regression", () => {
     const diagnostics = captureBrowserDiagnostics(page);
 
     await openCleanWorkbench(page);
-    await switchToScreen(page, "Screen 1");
+    await switchToScreen(page, "Home");
 
     await expect(page.getByLabel("Macro indicators")).toContainText(
       "Fed Funds Rate",
@@ -40,12 +40,14 @@ test.describe("@visual workbench regression", () => {
     const diagnostics = captureBrowserDiagnostics(page);
 
     await openCleanWorkbench(page);
-    await switchToScreen(page, "Screen 2");
+    await switchToScreen(page, "Equity");
 
-    await expect(page.getByLabel("Reference rates", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("Reference rates", { exact: true })).toContainText(
-      "SONIA",
-    );
+    await expect(
+      page.getByLabel("Reference rates", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByLabel("Reference rates", { exact: true }),
+    ).toContainText("SONIA");
     await expect(page.getByText("$211.05")).toBeVisible();
     await expect(page.locator(".workspace")).toHaveScreenshot(
       "rates-equity-screen.png",

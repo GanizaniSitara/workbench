@@ -27,7 +27,11 @@ function formatMacroValue(series: MacroSeries): string {
   return `${series.value.toFixed(2)}%`;
 }
 
-export function MacroWatchlistWidget() {
+export function MacroWatchlistWidget({
+  moniker = "macro.indicators",
+}: {
+  moniker?: string;
+}) {
   const [series, setSeries] = useState<MacroSeries[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +44,7 @@ export function MacroWatchlistWidget() {
       setError(null);
       try {
         const body = await queryData<MacroResponse>({
-          moniker: "macro.indicators",
+          moniker,
           shape: "snapshot",
           params: { limit: 1 },
         });
@@ -57,7 +61,7 @@ export function MacroWatchlistWidget() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [moniker]);
 
   if (isLoading) {
     return (

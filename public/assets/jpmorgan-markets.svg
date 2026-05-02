@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">
+  <rect width="40" height="40" rx="4" fill="#0C2340"/>
+  <text x="20" y="16" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="700" font-size="11">JPM</text>
+  <rect x="8" y="20" width="24" height="1.5" fill="#B39759" rx="0.75"/>
+  <text x="20" y="32" text-anchor="middle" fill="#B39759" font-family="Arial,sans-serif" font-weight="600" font-size="7">MARKETS</text>
+</svg>

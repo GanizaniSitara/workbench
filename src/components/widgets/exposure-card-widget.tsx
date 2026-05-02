@@ -60,7 +60,11 @@ function BarSection({ entries, colors }: BarSectionProps) {
   );
 }
 
-export function ExposureCardWidget() {
+export function ExposureCardWidget({
+  moniker = "portfolio.exposure",
+}: {
+  moniker?: string;
+}) {
   const [exposure, setExposure] = useState<PortfolioExposure | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,7 +76,7 @@ export function ExposureCardWidget() {
       setError(null);
       try {
         const data = await queryData<SnapshotResponse<PortfolioExposure>>({
-          moniker: "portfolio.exposure",
+          moniker,
         });
         if (!cancelled) setExposure(data.results);
       } catch (err) {
@@ -83,7 +87,7 @@ export function ExposureCardWidget() {
     }
     void load();
     return () => { cancelled = true; };
-  }, []);
+  }, [moniker]);
 
   if (isLoading) {
     return <div className="exposure-card exposure-card--state">Loading exposure…</div>;

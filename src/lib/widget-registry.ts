@@ -1,7 +1,18 @@
 import type { LayoutItem, WidgetType } from "@/lib/layout";
 
-export type WidgetCategory = "Markets" | "Research" | "AI" | "Workbench" | "Portfolio";
-export type WidgetDataKind = "macro" | "rates" | "equity" | "news" | "chat" | "portfolio";
+export type WidgetCategory =
+  | "Markets"
+  | "Research"
+  | "AI"
+  | "Workbench"
+  | "Portfolio";
+export type WidgetDataKind =
+  | "macro"
+  | "rates"
+  | "equity"
+  | "news"
+  | "chat"
+  | "portfolio";
 
 export interface WidgetRegistryEntry {
   type: WidgetType;
@@ -10,6 +21,7 @@ export interface WidgetRegistryEntry {
   category: WidgetCategory;
   idPrefix: string;
   singleton?: boolean;
+  defaultMoniker?: string;
   supportedDataKinds?: WidgetDataKind[];
   defaultLayout: Pick<LayoutItem, "w" | "h" | "minW" | "minH">;
 }
@@ -22,6 +34,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     category: "Markets",
     idPrefix: "macro",
     singleton: true,
+    defaultMoniker: "macro.indicators",
     supportedDataKinds: ["macro", "rates"],
     defaultLayout: { w: 12, h: 3, minW: 6, minH: 2 },
   },
@@ -31,6 +44,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     description: "Lightweight Charts time-series view with range controls.",
     category: "Markets",
     idPrefix: "macro-timeseries",
+    defaultMoniker: "macro.indicators/DGS10",
     supportedDataKinds: ["macro", "rates"],
     defaultLayout: { w: 8, h: 10, minW: 4, minH: 4 },
   },
@@ -41,6 +55,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     category: "Markets",
     idPrefix: "macro-watchlist",
     singleton: true,
+    defaultMoniker: "macro.indicators",
     supportedDataKinds: ["macro", "rates"],
     defaultLayout: { w: 4, h: 10, minW: 2, minH: 4 },
   },
@@ -55,12 +70,13 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
   },
   {
     type: "placeholder-news",
-    title: "News",
-    description: "OpenBB/YFinance market headlines feed.",
+    title: "GDELT Consensus",
+    description: "GDELT market consensus, tone, and headline proxy.",
     category: "Research",
     idPrefix: "news",
-    supportedDataKinds: ["news", "equity"],
-    defaultLayout: { w: 6, h: 7, minW: 2, minH: 3 },
+    defaultMoniker: "news/gdelt",
+    supportedDataKinds: ["news", "rates"],
+    defaultLayout: { w: 4, h: 4, minW: 2, minH: 3 },
   },
   {
     type: "yield-curve",
@@ -69,6 +85,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
       "Static Treasury curve view retained for fixed-income workflows.",
     category: "Markets",
     idPrefix: "yield-curve",
+    defaultMoniker: "fixed.income.govies",
     supportedDataKinds: ["rates"],
     defaultLayout: { w: 6, h: 7, minW: 4, minH: 4 },
   },
@@ -79,6 +96,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     category: "Markets",
     idPrefix: "ref-rates",
     singleton: true,
+    defaultMoniker: "reference.rates",
     supportedDataKinds: ["rates"],
     defaultLayout: { w: 12, h: 3, minW: 6, minH: 2 },
   },
@@ -88,13 +106,15 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     description: "Price history chart for any equity ticker via yfinance.",
     category: "Markets",
     idPrefix: "equity",
+    defaultMoniker: "equity.prices/AAPL",
     supportedDataKinds: ["equity"],
     defaultLayout: { w: 8, h: 10, minW: 4, minH: 4 },
   },
   {
     type: "overlay-chart",
     title: "Overlay Chart",
-    description: "Compare any tickers or macro series as % change on one chart.",
+    description:
+      "Compare any tickers or macro series as % change on one chart.",
     category: "Markets",
     idPrefix: "overlay",
     supportedDataKinds: ["equity", "macro", "rates"],
@@ -144,15 +164,18 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     description: "Symbol-linked news feed with compact cards and auto-refresh.",
     category: "Research",
     idPrefix: "news-feed",
+    defaultMoniker: "news.company/SPY,QQQ",
     supportedDataKinds: ["news", "equity"],
     defaultLayout: { w: 6, h: 9, minW: 3, minH: 4 },
   },
   {
     type: "event-context",
     title: "Event Context",
-    description: "Per-symbol news activity radar — spot which tickers are in the headlines.",
+    description:
+      "Per-symbol news activity radar — spot which tickers are in the headlines.",
     category: "Research",
     idPrefix: "event-ctx",
+    defaultMoniker: "news.company/AAPL,MSFT,NVDA,SPY",
     supportedDataKinds: ["news", "equity"],
     defaultLayout: { w: 5, h: 8, minW: 3, minH: 4 },
   },
@@ -162,6 +185,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     description: "Combined price change and top headlines per tracked symbol.",
     category: "Research",
     idPrefix: "research",
+    defaultMoniker: "news.company/AAPL,MSFT",
     supportedDataKinds: ["news", "equity"],
     defaultLayout: { w: 6, h: 10, minW: 3, minH: 5 },
   },
@@ -171,6 +195,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     description: "Sortable live positions table with P&L and risk metrics.",
     category: "Portfolio",
     idPrefix: "positions",
+    defaultMoniker: "portfolio.positions",
     supportedDataKinds: ["portfolio"],
     defaultLayout: { w: 8, h: 10, minW: 5, minH: 5 },
   },
@@ -180,15 +205,18 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     description: "Top-line P&L, day change, and portfolio duration tiles.",
     category: "Portfolio",
     idPrefix: "pnl",
+    defaultMoniker: "portfolio.summary",
     supportedDataKinds: ["portfolio"],
     defaultLayout: { w: 12, h: 4, minW: 6, minH: 3 },
   },
   {
     type: "exposure-card",
     title: "Exposure",
-    description: "Exposure breakdown by asset class and sector with bar charts.",
+    description:
+      "Exposure breakdown by asset class and sector with bar charts.",
     category: "Portfolio",
     idPrefix: "exposure",
+    defaultMoniker: "portfolio.exposure",
     supportedDataKinds: ["portfolio"],
     defaultLayout: { w: 4, h: 10, minW: 3, minH: 5 },
   },
@@ -198,6 +226,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     description: "Drill-down panel for a selected position with P&L history.",
     category: "Portfolio",
     idPrefix: "detail",
+    defaultMoniker: "portfolio.position/{id}",
     supportedDataKinds: ["portfolio"],
     defaultLayout: { w: 12, h: 8, minW: 5, minH: 4 },
   },
@@ -220,5 +249,14 @@ export function getWidgetRegistryEntry(type: WidgetType): WidgetRegistryEntry {
 export function widgetSupportsMoniker(type: WidgetType): boolean {
   const entry = WIDGET_REGISTRY.find((item) => item.type === type);
   if (!entry) return false;
-  return entry.category === "Markets" || entry.category === "Portfolio";
+  return Boolean(
+    entry.defaultMoniker ||
+    entry.category === "Markets" ||
+    entry.category === "Portfolio" ||
+    entry.supportedDataKinds?.includes("news"),
+  );
+}
+
+export function getWidgetDefaultMoniker(type: WidgetType): string | undefined {
+  return getWidgetRegistryEntry(type).defaultMoniker;
 }

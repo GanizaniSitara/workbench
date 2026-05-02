@@ -6,6 +6,7 @@ import {
   fetchSeriesFromOpenBb,
   fetchYieldCurveFromOpenBb,
 } from "./adapters/openbb";
+import { fetchNewsFromGdelt, type GdeltNewsResult } from "./adapters/gdelt";
 import {
   fetchPortfolioExposure,
   fetchPortfolioPositions,
@@ -110,11 +111,17 @@ export interface TableQueryResult {
   results: Record<string, unknown>[];
 }
 
+export interface NewsQueryResult extends GdeltNewsResult {
+  shape: "news";
+  source: "gdelt";
+}
+
 export type DataQueryResult =
   | SnapshotQueryResult
   | TimeseriesQueryResult
   | CurveQueryResult
-  | TableQueryResult;
+  | TableQueryResult
+  | NewsQueryResult;
 
 export class DataQueryError extends Error {
   constructor(
@@ -158,6 +165,16 @@ function symbolFromMoniker(moniker: string): string | null {
   const parts = canonicalMoniker(moniker).split("/");
   const symbol = parts[parts.length - 1]?.toUpperCase();
   return symbol && SERIES_INFO[symbol] ? symbol : null;
+}
+
+function referenceRateFromMoniker(
+  moniker: string,
+): (typeof REFERENCE_RATE_SERIES)[number] | null {
+  const parts = canonicalMoniker(moniker).split("/");
+  if (parts[0] !== "reference.rates" || parts.length !== 2) return null;
+
+  const id = parts[1].toUpperCase();
+  return REFERENCE_RATE_SERIES.find((series) => series.id === id) ?? null;
 }
 
 function withSymbolFromParams(request: DatasetRequest): DatasetRequest {
@@ -433,6 +450,22 @@ async function queryEquityTimeseries(
   throw new DataQueryError(502, `No data returned for ${symbol}`);
 }
 
+async function queryNews(plan: RoutePlan): Promise<NewsQueryResult> {
+  const routed = await executeRoutePlan<GdeltNewsResult>(plan, {
+    gdelt: fetchNewsFromGdelt,
+  });
+
+  if (routed && routed.source === "gdelt") {
+    return {
+      shape: "news",
+      source: routed.source,
+      ...routed.data,
+    };
+  }
+
+  throw new DataQueryError(503, `News unavailable: ${plan.moniker}`);
+}
+
 function isPortfolioPlan(plan: RoutePlan): boolean {
   return plan.routes.some((route) => route.source === "portfolio-adapter");
 }
@@ -531,9 +564,24 @@ export async function queryData(
   env: DataQueryEnv = defaultEnv(),
 ): Promise<DataQueryResult> {
   const canonical = canonicalMoniker(request.moniker);
+  const referenceRate = referenceRateFromMoniker(request.moniker);
 
   if (request.shape === "snapshot" && canonical === "reference.rates") {
     return queryReferenceRatesSnapshot(request, env);
+  }
+
+  if (
+    (!request.shape || request.shape === "snapshot") &&
+    referenceRate !== null
+  ) {
+    const result = await queryReferenceRateSnapshot(
+      request,
+      env,
+      referenceRate.id,
+      referenceRate.label,
+      referenceRate.moniker,
+    );
+    return { shape: "snapshot", results: [result] };
   }
 
   if (request.shape === "snapshot" && canonical === "macro.indicators") {
@@ -549,6 +597,10 @@ export async function queryData(
     ...request,
     shape: routePlan.shape,
   };
+
+  if (routePlan.shape === "news") {
+    return queryNews(routePlan);
+  }
 
   if (isPortfolioPlan(routePlan)) {
     if (routePlan.shape === "table") {

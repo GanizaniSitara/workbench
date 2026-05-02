@@ -10,12 +10,12 @@ test.describe("widget composition", () => {
     await expect(page.locator(".workspace-grid")).toBeVisible();
     await page
       .getByRole("banner", { name: "Workspace toolbar" })
-      .getByRole("button", { name: "Screen 1", exact: true })
+      .getByRole("button", { name: "Home", exact: true })
       .click();
     await expect(
       page
         .getByRole("banner", { name: "Workspace toolbar" })
-        .getByRole("button", { name: "Screen 1", exact: true }),
+        .getByRole("button", { name: "Home", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
   });
 

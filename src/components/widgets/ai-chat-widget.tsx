@@ -1,6 +1,13 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import {
+  DragEvent,
+  FormEvent,
+  KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 function ArrowUpIcon() {
   return (
@@ -59,6 +66,30 @@ interface ChatApiResponse {
     content?: string;
   };
   error?: string;
+}
+
+function droppedMoniker(dataTransfer: DataTransfer): string | null {
+  const raw =
+    dataTransfer.getData("application/x-workbench-moniker") ||
+    dataTransfer.getData("text/plain");
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as { path?: unknown };
+    if (typeof parsed.path === "string") return parsed.path.trim() || null;
+  } catch {
+    // Plain text drops are accepted below.
+  }
+
+  return raw.trim() || null;
+}
+
+function monikerSystemPrompt(moniker: string): string {
+  return [
+    `Active Workbench Moniker: ${moniker}`,
+    "Use this as the dataset or instrument context for the user's next request.",
+    "When useful, explain what the moniker likely resolves to and suggest concrete Workbench queries or chart actions using that exact moniker.",
+  ].join("\n");
 }
 
 async function fetchHistory(sessionId: string): Promise<ChatMessage[]> {
@@ -125,6 +156,8 @@ async function persistMessage(
 export function AiChatWidget({ sessionId }: { sessionId: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
+  const [activeMoniker, setActiveMoniker] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -166,9 +199,19 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
         content,
       );
       const memoryPrompt = buildMemoryPrompt(contextFacts);
-      const messagesForModel: ChatApiMessage[] = memoryPrompt
-        ? [{ role: "system", content: memoryPrompt }, ...chatHistory]
-        : chatHistory;
+      const systemMessages: ChatApiMessage[] = [
+        memoryPrompt,
+        activeMoniker ? monikerSystemPrompt(activeMoniker) : "",
+      ]
+        .filter((systemPrompt): systemPrompt is string => Boolean(systemPrompt))
+        .map((systemPrompt) => ({
+          role: "system" as const,
+          content: systemPrompt,
+        }));
+      const messagesForModel: ChatApiMessage[] = [
+        ...systemMessages,
+        ...chatHistory,
+      ];
 
       const response = await fetch(apiUrl("/api/chat"), {
         method: "POST",
@@ -205,8 +248,45 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
     event.currentTarget.form?.requestSubmit();
   }
 
+  function handleDragOver(event: DragEvent<HTMLDivElement>) {
+    if (
+      !event.dataTransfer.types.includes("application/x-workbench-moniker") &&
+      !event.dataTransfer.types.includes("text/plain")
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    setIsDragOver(true);
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLDivElement>) {
+    if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDragOver(false);
+
+    const moniker = droppedMoniker(event.dataTransfer);
+    if (!moniker) return;
+
+    setActiveMoniker(moniker);
+    inputRef.current?.focus();
+  }
+
   return (
-    <div className="ai-chat">
+    <div
+      className={["ai-chat", isDragOver ? "ai-chat--dragover" : ""]
+        .filter(Boolean)
+        .join(" ")}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       <div className="ai-chat__messages">
         {isLoading && <div className="ai-chat__state">Loading…</div>}
         {!isLoading && messages.length === 0 && (
@@ -229,6 +309,19 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
         <div ref={bottomRef} />
       </div>
       <form className="ai-chat__form" onSubmit={handleSubmit}>
+        {activeMoniker && (
+          <div className="ai-chat__context">
+            <code className="ai-chat__context-value">{activeMoniker}</code>
+            <button
+              aria-label="Clear moniker context"
+              className="ai-chat__context-clear"
+              onClick={() => setActiveMoniker(null)}
+              type="button"
+            >
+              ×
+            </button>
+          </div>
+        )}
         <div className="ai-chat__compose">
           <textarea
             className="ai-chat__input"

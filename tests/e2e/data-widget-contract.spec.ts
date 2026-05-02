@@ -13,11 +13,13 @@ test.describe("data-backed widgets", () => {
     await mockStableWidgetData(page);
   });
 
-  test("markets widgets render deterministic fixture data", async ({ page }) => {
+  test("markets widgets render deterministic fixture data", async ({
+    page,
+  }) => {
     const diagnostics = captureBrowserDiagnostics(page);
 
     await openCleanWorkbench(page);
-    await switchToScreen(page, "Screen 1");
+    await switchToScreen(page, "Home");
 
     await expect(page.getByLabel("Macro indicators")).toContainText(
       "Fed Funds Rate",
@@ -39,7 +41,7 @@ test.describe("data-backed widgets", () => {
     const diagnostics = captureBrowserDiagnostics(page);
 
     await openCleanWorkbench(page);
-    await switchToScreen(page, "Screen 2");
+    await switchToScreen(page, "Equity");
 
     const referenceRates = page.getByLabel("Reference rates", { exact: true });
 

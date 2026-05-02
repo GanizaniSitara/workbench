@@ -92,6 +92,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [fullLayout, setFullLayout] = useState<WorkspaceLayout>(() =>
     buildDefaultLayout(DEV_USER_ID),
   );
+  const [hasHydrated, setHasHydrated] = useState(false);
   const [maximizedWidgetId, setMaximizedWidgetId] = useState<string | null>(
     "notebook-jupyter",
   );
@@ -117,12 +118,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           patched.screens.find((screen) => screen.id === patched.activeScreenId),
         ),
       );
+      setHasHydrated(true);
     });
   }, []);
 
   useEffect(() => {
+    if (!hasHydrated) return;
     saveLayout(fullLayout);
-  }, [fullLayout]);
+  }, [fullLayout, hasHydrated]);
 
   useEffect(() => {
     if (!maximizedWidgetId) return;

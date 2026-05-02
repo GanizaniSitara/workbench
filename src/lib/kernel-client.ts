@@ -54,40 +54,41 @@ except Exception:
 class _Wbn:
     _BASE = "http://127.0.0.1:4000"
 
-    def _query(self, moniker, shape, params=None):
+    def query(self, moniker, params=None):
         response = requests.post(
             f"{self._BASE}/api/data/query",
-            json={"moniker": moniker, "shape": shape, "params": params or {}},
+            json={"moniker": moniker, "params": params or {}},
             timeout=20,
         )
         response.raise_for_status()
-        return response.json().get("results", [])
+        return self._frame(response.json().get("results", []))
+
+    def _query(self, moniker, params=None):
+        return self.query(moniker, params)
 
     def _frame(self, rows):
         return pd.DataFrame(rows) if pd is not None else rows
 
     def fred(self, symbol, range="1y"):
-        return self._frame(self._query(
+        return self.query(
             f"macro.indicators/{symbol}",
-            "timeseries",
             {"symbol": symbol, "range": range},
-        ))
+        )
 
     def equity(self, symbol, range="1y"):
-        return self._frame(self._query(
+        return self.query(
             f"equity.prices/{symbol}",
-            "timeseries",
             {"range": range},
-        ))
+        )
 
     def curve(self):
-        return self._frame(self._query("fixed.income.govies", "curve"))
+        return self.query("fixed.income.govies")
 
     def rates(self):
-        return self._frame(self._query("reference.rates", "snapshot"))
+        return self.query("reference.rates")
 
     def snapshot(self):
-        return self._frame(self._query("macro.indicators", "snapshot"))
+        return self.query("macro.indicators")
 
 wbn = _Wbn()
 `;

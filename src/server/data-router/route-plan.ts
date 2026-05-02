@@ -8,6 +8,7 @@ export type DatasetShape =
 export type RouteSource =
   | "questdb"
   | "openbb"
+  | "gdelt"
   | "refinitiv"
   | "direct-db"
   | "portfolio-adapter";

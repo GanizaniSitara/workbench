@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">
+  <rect width="40" height="40" rx="4" fill="#00263A"/>
+  <circle cx="20" cy="15" r="8" fill="none" stroke="#00AEEF" stroke-width="2"/>
+  <line x1="12" y1="15" x2="28" y2="15" stroke="#00AEEF" stroke-width="1.2"/>
+  <line x1="20" y1="7" x2="20" y2="23" stroke="#00AEEF" stroke-width="1.2"/>
+  <ellipse cx="20" cy="15" rx="4" ry="8" fill="none" stroke="#00AEEF" stroke-width="1"/>
+  <text x="20" y="33" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="700" font-size="7">CME</text>
+</svg>

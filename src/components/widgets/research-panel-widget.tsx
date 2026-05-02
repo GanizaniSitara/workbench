@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { apiUrl } from "@/lib/api-base";
+import {
+  newsApiPath,
+  newsMonikerFromSymbols,
+  symbolsFromNewsMoniker,
+} from "@/lib/news-moniker";
 
 interface PricePoint {
   date: string;
@@ -54,10 +59,13 @@ function formatDate(value: string | null): string {
   }).format(d);
 }
 
-async function fetchBrief(symbol: string): Promise<Omit<SymbolBrief, "loading" | "error">> {
+async function fetchBrief(
+  symbol: string,
+  moniker: string | undefined,
+): Promise<Omit<SymbolBrief, "loading" | "error">> {
   const [equityRes, newsRes] = await Promise.all([
     fetch(apiUrl(`/api/market/equity?symbol=${symbol}&range=1m`)),
-    fetch(apiUrl(`/api/news?symbols=${symbol}&limit=5`)),
+    fetch(apiUrl(newsApiPath(moniker, [symbol], 5))),
   ]);
 
   const equity = (await equityRes.json()) as EquityResponse;
@@ -83,8 +91,16 @@ async function fetchBrief(symbol: string): Promise<Omit<SymbolBrief, "loading" |
   };
 }
 
-export function ResearchPanelWidget() {
-  const [symbols, setSymbols] = useState<string[]>(DEFAULT_SYMBOLS);
+export function ResearchPanelWidget({
+  moniker = "news.company/AAPL,MSFT",
+  onMonikerChange,
+}: {
+  moniker?: string;
+  onMonikerChange?: (moniker: string) => void;
+} = {}) {
+  const [symbols, setSymbols] = useState<string[]>(() =>
+    symbolsFromNewsMoniker(moniker, DEFAULT_SYMBOLS),
+  );
   const [inputValue, setInputValue] = useState("");
   const [briefs, setBriefs] = useState<Record<string, SymbolBrief>>({});
 
@@ -103,7 +119,7 @@ export function ResearchPanelWidget() {
         },
       }));
 
-      void fetchBrief(sym)
+      void fetchBrief(sym, moniker)
         .then((result) => {
           setBriefs((prev) => ({
             ...prev,
@@ -126,18 +142,26 @@ export function ResearchPanelWidget() {
     }
   }, [symbols]);
 
+  useEffect(() => {
+    setSymbols(symbolsFromNewsMoniker(moniker, DEFAULT_SYMBOLS));
+  }, [moniker]);
+
   function addSymbol() {
     const sym = inputValue.trim().toUpperCase();
     if (!sym || symbols.includes(sym)) {
       setInputValue("");
       return;
     }
-    setSymbols((prev) => [...prev, sym]);
+    const nextSymbols = [...symbols, sym];
+    setSymbols(nextSymbols);
+    onMonikerChange?.(newsMonikerFromSymbols(nextSymbols));
     setInputValue("");
   }
 
   function removeSymbol(sym: string) {
-    setSymbols((prev) => prev.filter((s) => s !== sym));
+    const nextSymbols = symbols.filter((s) => s !== sym);
+    setSymbols(nextSymbols);
+    onMonikerChange?.(newsMonikerFromSymbols(nextSymbols));
     setBriefs((prev) => {
       const next = { ...prev };
       delete next[sym];
@@ -255,9 +279,7 @@ export function ResearchPanelWidget() {
                       </span>
                       <span className="research-card__headline-meta">
                         {h.domain ?? ""}
-                        {h.publishedAt
-                          ? ` · ${formatDate(h.publishedAt)}`
-                          : ""}
+                        {h.publishedAt ? ` · ${formatDate(h.publishedAt)}` : ""}
                       </span>
                     </a>
                   ))}

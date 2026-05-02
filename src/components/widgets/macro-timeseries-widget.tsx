@@ -87,7 +87,7 @@ export function MacroTimeseriesWidget({
   const [isLoading, setIsLoading] = useState(true);
 
   const moniker = useMemo(
-    () => monikerProp ?? "macro.indicators",
+    () => monikerProp ?? "macro.indicators/DGS10",
     [monikerProp],
   );
 

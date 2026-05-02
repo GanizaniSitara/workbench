@@ -112,22 +112,28 @@ function DetailRow({ label, value, className }: DetailRowProps) {
 
 // ─── Widget ──────────────────────────────────────────────────────────────────
 
-export function PositionDetailWidget() {
+export function PositionDetailWidget({
+  onMonikerChange,
+}: {
+  onMonikerChange?: (moniker: string) => void;
+} = {}) {
   const [detail, setDetail] = useState<PositionDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const loadPosition = useCallback(async (id: string) => {
+    const positionMoniker = `portfolio.position/${id}`;
+    onMonikerChange?.(positionMoniker);
     setIsLoading(true);
     setError(null);
     try {
       const [positionData, historyData] = await Promise.all([
         queryData<SnapshotResponse<Position>>({
-          moniker: `portfolio.position/${id}`,
+          moniker: positionMoniker,
         }),
         queryData<TimeseriesResponse>({
-          moniker: `portfolio.position/${id}/pnl-history`,
+          moniker: `${positionMoniker}/pnl-history`,
         }),
       ]);
       setDetail({
@@ -142,7 +148,7 @@ export function PositionDetailWidget() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [onMonikerChange]);
 
   useEffect(() => {
     function onSelect(e: Event) {

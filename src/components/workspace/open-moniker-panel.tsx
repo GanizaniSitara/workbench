@@ -74,11 +74,40 @@ function MonikerNode({
   const hasChildren = node.children.length > 0;
   const isOpen = expanded[node.path] ?? depth < 1;
 
+  function selectMoniker() {
+    if (!node.has_source_binding) return;
+    window.dispatchEvent(
+      new CustomEvent("workbench:moniker-select", {
+        detail: {
+          path: node.path,
+          sourceType: node.source_type,
+        },
+      }),
+    );
+  }
+
   return (
     <li>
       <button
         className="open-moniker-panel__node"
-        onClick={() => (hasChildren ? onToggle(node.path) : undefined)}
+        draggable={node.has_source_binding}
+        onClick={() => {
+          if (node.has_source_binding) {
+            selectMoniker();
+          } else if (hasChildren) {
+            onToggle(node.path);
+          }
+        }}
+        onDragStart={(event) => {
+          if (!node.has_source_binding) return;
+          const payload = JSON.stringify({
+            path: node.path,
+            sourceType: node.source_type,
+          });
+          event.dataTransfer.setData("application/x-workbench-moniker", payload);
+          event.dataTransfer.setData("text/plain", node.path);
+          event.dataTransfer.effectAllowed = "copy";
+        }}
         style={{ paddingLeft: `${0.4 + depth * 0.65}rem` }}
         title={node.description ?? node.path}
         type="button"

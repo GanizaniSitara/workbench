@@ -39,6 +39,11 @@ const RANGES: Array<{ key: RangeKey; label: string }> = [
 
 const DEFAULT_TICKER = "AAPL";
 
+function tickerFromEquityMoniker(moniker: string | undefined): string | undefined {
+  const symbol = moniker?.match(/^equity\.prices\/([^/]+)/)?.[1];
+  return symbol?.toUpperCase();
+}
+
 function cssVar(name: string, fallback: string): string {
   const value = getComputedStyle(document.documentElement)
     .getPropertyValue(name)
@@ -57,8 +62,10 @@ function formatPrice(value: number): string {
 
 export function EquityChartWidget({
   moniker: monikerProp,
+  onMonikerChange,
 }: {
   moniker?: string;
+  onMonikerChange?: (moniker: string) => void;
 } = {}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -76,6 +83,13 @@ export function EquityChartWidget({
     () => monikerProp ?? `equity.prices/${ticker}`,
     [monikerProp, ticker],
   );
+
+  useEffect(() => {
+    const nextTicker = tickerFromEquityMoniker(monikerProp);
+    if (!nextTicker) return;
+    setTicker(nextTicker);
+    setInputValue(nextTicker);
+  }, [monikerProp]);
 
   useEffect(() => {
     let cancelled = false;
@@ -228,6 +242,7 @@ export function EquityChartWidget({
     const trimmed = inputValue.trim().toUpperCase();
     if (trimmed && trimmed !== ticker) {
       setTicker(trimmed);
+      onMonikerChange?.(`equity.prices/${trimmed}`);
     }
   }
 

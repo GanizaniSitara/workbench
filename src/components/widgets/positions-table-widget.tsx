@@ -111,7 +111,11 @@ const COLUMNS: Column[] = [
   },
 ];
 
-export function PositionsTableWidget() {
+export function PositionsTableWidget({
+  moniker = "portfolio.positions",
+}: {
+  moniker?: string;
+}) {
   const [positions, setPositions] = useState<Position[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -126,7 +130,7 @@ export function PositionsTableWidget() {
       setError(null);
       try {
         const data = await queryData<PositionsResponse>({
-          moniker: "portfolio.positions",
+          moniker,
         });
         if (!cancelled) setPositions(data.results);
       } catch (err) {
@@ -137,7 +141,7 @@ export function PositionsTableWidget() {
     }
     void load();
     return () => { cancelled = true; };
-  }, []);
+  }, [moniker]);
 
   const handleSort = useCallback(
     (key: SortKey) => {

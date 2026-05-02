@@ -24,7 +24,7 @@ const REFERENCE_RATE_CONFIGS: Record<
     endpoint: "/api/v1/fixedincome/rate/sofr",
     provider: "federal_reserve",
   },
-  ESTR: { endpoint: "/api/v1/fixedincome/rate/estr", provider: "ecb" },
+  ESTR: { endpoint: "/api/v1/fixedincome/rate/estr", provider: "fred" },
   EFFR: {
     endpoint: "/api/v1/fixedincome/rate/effr",
     provider: "federal_reserve",
@@ -62,6 +62,7 @@ interface RoutePlanStub {
 const ROUTE_SOURCES = new Set<RouteStep["source"]>([
   "questdb",
   "openbb",
+  "gdelt",
   "refinitiv",
   "direct-db",
   "portfolio-adapter",
@@ -288,6 +289,28 @@ export const ROUTE_PLAN_STUBS: RoutePlanStub[] = [
       },
     ],
     policy: { fallback: "ordered", ttlSeconds: 60 },
+  },
+  {
+    id: "gdelt-news",
+    shapes: ["news"],
+    match: (canonical) =>
+      canonical === "news/gdelt" || canonical === "news.gdelt"
+        ? { provider: "gdelt" }
+        : null,
+    routes: [
+      {
+        source: "gdelt",
+        ref: {
+          provider: { from: "context", name: "provider" },
+          topic: { from: "param", name: "topic", default: "markets" },
+          query: { from: "param", name: "query", default: "" },
+          timespan: { from: "param", name: "timespan", default: "24h" },
+          sort: { from: "param", name: "sort", default: "hybridrel" },
+          limit: { from: "param", name: "limit", default: 8 },
+        },
+      },
+    ],
+    policy: { fallback: "none", ttlSeconds: 300 },
   },
 ];
 

@@ -75,7 +75,11 @@ function buildTiles(s: PortfolioSummary): Tile[] {
   ];
 }
 
-export function PnlSummaryWidget() {
+export function PnlSummaryWidget({
+  moniker = "portfolio.summary",
+}: {
+  moniker?: string;
+}) {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,7 +91,7 @@ export function PnlSummaryWidget() {
       setError(null);
       try {
         const data = await queryData<SnapshotResponse<PortfolioSummary>>({
-          moniker: "portfolio.summary",
+          moniker,
         });
         if (!cancelled) setSummary(data.results);
       } catch (err) {
@@ -98,7 +102,7 @@ export function PnlSummaryWidget() {
     }
     void load();
     return () => { cancelled = true; };
-  }, []);
+  }, [moniker]);
 
   if (isLoading) {
     return <div className="pnl-summary pnl-summary--state">Loading summary…</div>;

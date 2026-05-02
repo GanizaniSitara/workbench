@@ -13,6 +13,57 @@ interface WidgetChromeProps {
   children: React.ReactNode;
 }
 
+function ClipboardIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="12"
+      viewBox="0 0 15 15"
+      width="12"
+    >
+      <rect
+        height="9"
+        rx="1.2"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        width="8"
+        x="5"
+        y="2"
+      />
+      <rect
+        height="9"
+        rx="1.2"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        width="8"
+        x="2"
+        y="5"
+      />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="12"
+      viewBox="0 0 15 15"
+      width="12"
+    >
+      <path
+        d="M2.5 8l3.5 3.5 6.5-7"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
 export function WidgetChrome({
   widgetId,
   widgetType,
@@ -33,7 +84,8 @@ export function WidgetChrome({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const isSingleton = getWidgetRegistryEntry(widgetType).singleton;
   const isMaximized = maximizedWidgetId === widgetId;
-  const showMoniker = widgetSupportsMoniker(widgetType);
+  const normalizedMoniker = moniker?.trim();
+  const showMoniker = widgetSupportsMoniker(widgetType) || Boolean(normalizedMoniker);
 
   function handleDragOver(e: React.DragEvent) {
     if (!showMoniker) return;
@@ -53,6 +105,7 @@ export function WidgetChrome({
   }
 
   function handleDrop(e: React.DragEvent) {
+    if (!showMoniker) return;
     e.preventDefault();
     setIsDragOver(false);
     const raw =
@@ -62,7 +115,7 @@ export function WidgetChrome({
     let path = raw;
     try {
       const parsed = JSON.parse(raw);
-      if (parsed?.path) path = parsed.path;
+      if (typeof parsed?.path === "string") path = parsed.path;
     } catch {
       // plain text path — use as-is
     }
@@ -70,9 +123,10 @@ export function WidgetChrome({
     if (path) updateWidgetConfig(widgetId, { moniker: path });
   }
 
-  function handleCopy() {
-    if (!moniker) return;
-    navigator.clipboard.writeText(moniker);
+  async function handleCopy(e: React.MouseEvent<HTMLElement>) {
+    e.stopPropagation();
+    if (!normalizedMoniker) return;
+    await navigator.clipboard.writeText(normalizedMoniker);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -113,33 +167,31 @@ export function WidgetChrome({
       >
         <span className="widget-chrome__title">{title}</span>
 
-        {showMoniker && (
-          <span
-            className={[
-              "widget-chrome__moniker-pill",
-              moniker ? "widget-chrome__moniker-pill--loaded" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            {moniker ? (
-              <>
-                <span className="widget-chrome__moniker-text">{moniker}</span>
-                <button
-                  className="widget-chrome__moniker-copy"
-                  onClick={handleCopy}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  title={copied ? "Copied!" : "Copy moniker"}
-                  type="button"
-                >
-                  {copied ? "✓" : "⎘"}
-                </button>
-              </>
-            ) : (
+        {showMoniker &&
+          (normalizedMoniker ? (
+            <button
+              aria-label={`Copy moniker ${normalizedMoniker}`}
+              className="widget-chrome__moniker-pill widget-chrome__moniker-pill--loaded"
+              onClick={(e) => void handleCopy(e)}
+              onMouseDown={(e) => e.stopPropagation()}
+              title={copied ? "Copied!" : `Copy moniker: ${normalizedMoniker}`}
+              type="button"
+            >
+              <span className="widget-chrome__moniker-text">
+                {normalizedMoniker}
+              </span>
+              <span className="widget-chrome__moniker-copy" aria-hidden="true">
+                {copied ? <CheckIcon /> : <ClipboardIcon />}
+              </span>
+            </button>
+          ) : (
+            <span
+              className="widget-chrome__moniker-pill"
+              title="Drop a moniker on this widget"
+            >
               <span className="widget-chrome__moniker-empty">drop dataset</span>
-            )}
-          </span>
-        )}
+            </span>
+          ))}
 
         <div className="widget-chrome__actions">
           <button

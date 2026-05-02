@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { apiUrl } from "@/lib/api-base";
+import {
+  newsApiPath,
+  newsMonikerFromSymbols,
+  symbolsFromNewsMoniker,
+} from "@/lib/news-moniker";
 
 interface NewsItem {
   title: string;
@@ -35,8 +40,16 @@ function formatAge(value: string | null): string {
   }).format(new Date(value));
 }
 
-export function NewsFeedWidget() {
-  const [symbols, setSymbols] = useState<string[]>(DEFAULT_SYMBOLS);
+export function NewsFeedWidget({
+  moniker = "news.company/SPY,QQQ",
+  onMonikerChange,
+}: {
+  moniker?: string;
+  onMonikerChange?: (moniker: string) => void;
+} = {}) {
+  const [symbols, setSymbols] = useState<string[]>(() =>
+    symbolsFromNewsMoniker(moniker, DEFAULT_SYMBOLS),
+  );
   const [inputValue, setInputValue] = useState("");
   const [items, setItems] = useState<NewsItem[]>([]);
   const [provider, setProvider] = useState<string | null>(null);
@@ -48,11 +61,10 @@ export function NewsFeedWidget() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        apiUrl(`/api/news?symbols=${syms.join(",")}&limit=30`),
-      );
+      const response = await fetch(apiUrl(newsApiPath(moniker, syms, 30)));
       const body = (await response.json()) as NewsResponse;
-      if (!response.ok) throw new Error(body.error ?? `HTTP ${response.status}`);
+      if (!response.ok)
+        throw new Error(body.error ?? `HTTP ${response.status}`);
       setItems(body.results ?? []);
       setProvider(body.provider ?? null);
     } catch (err) {
@@ -70,18 +82,26 @@ export function NewsFeedWidget() {
     };
   }, [symbols]);
 
+  useEffect(() => {
+    setSymbols(symbolsFromNewsMoniker(moniker, DEFAULT_SYMBOLS));
+  }, [moniker]);
+
   function addSymbol() {
     const sym = inputValue.trim().toUpperCase();
     if (!sym || symbols.includes(sym)) {
       setInputValue("");
       return;
     }
-    setSymbols((prev) => [...prev, sym]);
+    const nextSymbols = [...symbols, sym];
+    setSymbols(nextSymbols);
+    onMonikerChange?.(newsMonikerFromSymbols(nextSymbols));
     setInputValue("");
   }
 
   function removeSymbol(sym: string) {
-    setSymbols((prev) => prev.filter((s) => s !== sym));
+    const nextSymbols = symbols.filter((s) => s !== sym);
+    setSymbols(nextSymbols);
+    onMonikerChange?.(newsMonikerFromSymbols(nextSymbols));
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -120,7 +140,9 @@ export function NewsFeedWidget() {
         </div>
         <div className="news-feed__meta">
           {provider && (
-            <span className="news-feed__provider">{provider.toUpperCase()}</span>
+            <span className="news-feed__provider">
+              {provider.toUpperCase()}
+            </span>
           )}
           <button
             className="news-feed__refresh"

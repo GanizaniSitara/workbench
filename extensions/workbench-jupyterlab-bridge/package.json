@@ -1,0 +1,29 @@
+{
+  "name": "@workbench/jupyterlab-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Workbench bridge for inserting generated query cells into JupyterLab notebooks.",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "style"
+  ],
+  "scripts": {
+    "build": "tsc && C:/miniconda3/envs/workbench-jupyter/python.exe -m jupyter labextension build .",
+    "clean": "rimraf lib labextension"
+  },
+  "dependencies": {
+    "@jupyterlab/application": "~4.5.7",
+    "@jupyterlab/notebook": "~4.5.7"
+  },
+  "devDependencies": {
+    "@jupyterlab/builder": "^4.5.7",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.3"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "outputDir": "labextension"
+  }
+}

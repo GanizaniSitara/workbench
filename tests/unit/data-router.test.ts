@@ -156,6 +156,28 @@ describe("resolveRoutePlan", () => {
     });
   });
 
+  it("materializes ESTR as a FRED-backed reference rate", async () => {
+    const plan = await resolveRoutePlan({
+      moniker: "reference.rates/ESTR",
+      shape: "snapshot",
+    });
+
+    expect(plan).toEqual({
+      moniker: "reference.rates/ESTR",
+      shape: "snapshot",
+      routes: [
+        {
+          source: "openbb",
+          ref: {
+            endpoint: "/api/v1/fixedincome/rate/estr",
+            provider: "fred",
+          },
+        },
+      ],
+      policy: { fallback: "ordered", ttlSeconds: 300 },
+    });
+  });
+
   it("declares portfolio dataset shape from the route plan", async () => {
     const plan = await resolveRoutePlan({
       moniker: "portfolio.positions",
@@ -171,6 +193,33 @@ describe("resolveRoutePlan", () => {
         },
       ],
       policy: { fallback: "none", ttlSeconds: 30 },
+    });
+  });
+
+  it("materializes GDELT news through the news data-provider route", async () => {
+    const plan = await resolveRoutePlan({
+      moniker: "news/gdelt",
+      shape: "news",
+      params: { limit: 5 },
+    });
+
+    expect(plan).toEqual({
+      moniker: "news/gdelt",
+      shape: "news",
+      routes: [
+        {
+          source: "gdelt",
+          ref: {
+            provider: "gdelt",
+            topic: "markets",
+            query: "",
+            timespan: "24h",
+            sort: "hybridrel",
+            limit: 5,
+          },
+        },
+      ],
+      policy: { fallback: "none", ttlSeconds: 300 },
     });
   });
 
@@ -397,6 +446,67 @@ describe("queryData", () => {
         { maturity: "year10", rate: 3.8 },
         { maturity: "year20", rate: 3.85 },
         { maturity: "year30", rate: 3.9 },
+      ],
+    });
+  });
+
+  it("queries a single reference rate with only a moniker", async () => {
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          results: [{ date: "2026-04-30", rate: 0.0201 }],
+        }),
+      );
+
+    const result = await queryData(
+      {
+        moniker: "reference.rates/ESTR",
+      },
+      { openbbUrl: "http://openbb.test" },
+    );
+
+    expect(result).toEqual({
+      shape: "snapshot",
+      results: [
+        {
+          id: "ESTR",
+          label: "ESTR",
+          value: 2.01,
+          date: "2026-04-30",
+          source: "openbb",
+        },
+      ],
+    });
+  });
+
+  it("does not rescale reference rates that are already percentages", async () => {
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          results: [
+            { date: "2026-04-29", rate: 3.7298 },
+            { date: "2026-04-30", rate: null },
+          ],
+        }),
+      );
+
+    const result = await queryData(
+      {
+        moniker: "reference.rates/SONIA",
+      },
+      { openbbUrl: "http://openbb.test" },
+    );
+
+    expect(result).toEqual({
+      shape: "snapshot",
+      results: [
+        {
+          id: "SONIA",
+          label: "SONIA",
+          value: 3.7298,
+          date: "2026-04-29",
+          source: "openbb",
+        },
       ],
     });
   });

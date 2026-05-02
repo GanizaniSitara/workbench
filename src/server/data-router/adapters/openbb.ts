@@ -147,10 +147,19 @@ export async function fetchLatestReferenceRateFromOpenBb(
     }
     const body = await response.json();
     const results: Array<Record<string, unknown>> = body?.results ?? [];
-    const latest = results[results.length - 1] ?? null;
+    const latest =
+      [...results]
+        .reverse()
+        .find((row) => Number.isFinite(Number(row.rate ?? row.value))) ?? null;
     const raw = latest?.rate ?? latest?.value ?? null;
+    const value = raw !== null ? Number(raw) : null;
     return {
-      value: raw !== null ? Number(raw) * 100 : null,
+      value:
+        value !== null && Number.isFinite(value)
+          ? Math.abs(value) <= 1
+            ? value * 100
+            : value
+          : null,
       date: typeof latest?.date === "string" ? latest.date.split("T")[0] : null,
     };
   } catch (err) {

@@ -48,6 +48,13 @@ const SERIES_INFO: Record<
   CPIAUCSL: { label: "CPI", format: "level" },
   UNRATE: { label: "Unemployment Rate", format: "percent" },
   VIXCLS: { label: "VIX", format: "level" },
+  BAMLC0A0CM: { label: "US IG Corporate OAS", format: "percent" },
+  BAMLH0A0HYM2: { label: "US High Yield OAS", format: "percent" },
+  BAMLC0A0CMEY: { label: "US IG Corporate Yield", format: "percent" },
+  BAMLH0A0HYM2EY: { label: "US High Yield Yield", format: "percent" },
+  BAMLCC0A0CMTRIV: { label: "US IG Corporate TR", format: "level" },
+  BAMLHYH0A0HYM2TRIV: { label: "US High Yield TR", format: "level" },
+  BAMLHE00EHYIOAS: { label: "Euro High Yield OAS", format: "percent" },
 };
 
 const REFERENCE_RATE_SERIES = [
@@ -189,6 +196,37 @@ function withSymbolFromParams(request: DatasetRequest): DatasetRequest {
   };
 }
 
+function fredSeriesRoutePlan(
+  request: DatasetRequest,
+  symbol: string,
+  limit: number,
+): RoutePlan {
+  return {
+    moniker: request.moniker,
+    shape: "timeseries",
+    routes: [
+      {
+        source: "questdb",
+        ref: {
+          table: "fred_series",
+          symbol,
+          limit,
+        },
+      },
+      {
+        source: "openbb",
+        ref: {
+          endpoint: "/api/v1/economy/fred_series",
+          provider: "fred",
+          symbol,
+          limit,
+        },
+      },
+    ],
+    policy: { fallback: "ordered", ttlSeconds: 300 },
+  };
+}
+
 async function querySeriesSnapshot(
   request: DatasetRequest,
   env: DataQueryEnv,
@@ -283,13 +321,13 @@ async function queryTimeseries(
     );
   }
 
-  const routePlan = await resolveRoutePlan({
+  const routedRequest = {
     ...normalizedRequest,
     params: { ...normalizedRequest.params, limit, range: resolvedRange },
-  });
-  if (!routePlan) {
-    throw new DataQueryError(503, "data unavailable");
-  }
+  };
+  const routePlan =
+    (await resolveRoutePlan(routedRequest)) ??
+    fredSeriesRoutePlan(routedRequest, requestedSymbol, limit);
 
   const routed = await executeRoutePlan<SeriesRouteResult>(routePlan, {
     questdb: async (route) => {
@@ -586,6 +624,14 @@ export async function queryData(
 
   if (request.shape === "snapshot" && canonical === "macro.indicators") {
     return querySnapshot(request, env);
+  }
+
+  if (request.shape === "timeseries") {
+    const normalizedRequest = withSymbolFromParams(request);
+    const normalizedCanonical = canonicalMoniker(normalizedRequest.moniker);
+    if (normalizedCanonical.startsWith("macro.indicators/")) {
+      return queryTimeseries(normalizedRequest, env);
+    }
   }
 
   const routePlan = await resolveRoutePlan(request);

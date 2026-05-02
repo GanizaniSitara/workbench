@@ -131,6 +131,41 @@ const MACRO_OPTIONS: PickerOption[] = [
     label: "Unemployment",
     description: "Unemployment rate",
   },
+  {
+    moniker: "macro.indicators/BAMLC0A0CM",
+    label: "US IG Corporate OAS",
+    description: "ICE BofA US Corporate Index option-adjusted spread",
+  },
+  {
+    moniker: "macro.indicators/BAMLH0A0HYM2",
+    label: "US High Yield OAS",
+    description: "ICE BofA US High Yield Index option-adjusted spread",
+  },
+  {
+    moniker: "macro.indicators/BAMLC0A0CMEY",
+    label: "US IG Corporate Yield",
+    description: "ICE BofA US Corporate Index effective yield",
+  },
+  {
+    moniker: "macro.indicators/BAMLH0A0HYM2EY",
+    label: "US High Yield Yield",
+    description: "ICE BofA US High Yield Index effective yield",
+  },
+  {
+    moniker: "macro.indicators/BAMLCC0A0CMTRIV",
+    label: "US IG Corporate TR",
+    description: "ICE BofA US Corporate Index total return",
+  },
+  {
+    moniker: "macro.indicators/BAMLHYH0A0HYM2TRIV",
+    label: "US High Yield TR",
+    description: "ICE BofA US High Yield Index total return",
+  },
+  {
+    moniker: "macro.indicators/BAMLHE00EHYIOAS",
+    label: "Euro High Yield OAS",
+    description: "ICE BofA Euro High Yield Index option-adjusted spread",
+  },
 ];
 
 function cssVar(name: string, fallback: string): string {

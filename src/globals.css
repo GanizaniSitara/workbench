@@ -1534,11 +1534,12 @@ code {
 }
 
 .macro-strip {
-  display: flex;
-  gap: 0.35rem;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 0.1rem;
+  align-content: stretch;
+  display: grid;
+  gap: 0.3rem;
+  grid-auto-rows: minmax(3.7rem, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
+  overflow: hidden;
 }
 
 .macro-strip__card {
@@ -1546,11 +1547,11 @@ code {
   border: 1px solid var(--panel-border-subtle);
   border-radius: 4px;
   display: flex;
-  flex: 0 0 150px;
   flex-direction: column;
   justify-content: space-between;
   min-width: 0;
-  padding: 0.4rem 0.5rem;
+  overflow: hidden;
+  padding: 0.35rem 0.45rem;
 }
 
 .macro-strip__label {
@@ -1564,7 +1565,7 @@ code {
 
 .macro-strip__value {
   color: var(--foreground);
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1.2;
   margin-top: 0.15rem;

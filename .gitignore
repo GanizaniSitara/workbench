@@ -39,6 +39,8 @@ yarn-error.log*
 
 # local development services
 .local-memory/
+.cache/
+notebooks/.ipynb_checkpoints/
 
 # runtime data (SQLite databases, etc.)
 /data/*.db

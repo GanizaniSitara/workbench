@@ -566,11 +566,17 @@ function routePlanResolverMode(): RoutePlanResolverMode {
     .trim()
     .toLowerCase();
 
+  if (["direct", "local", "stub", "stubs"].includes(raw)) {
+    return "direct";
+  }
+
   return ["enterprise", "moniker", "moniker-service", "open-moniker"].includes(
     raw,
   )
     ? "moniker-service"
-    : "direct";
+    : process.env.MONIKER_RESOLVER_URL?.trim()
+      ? "moniker-service"
+      : "direct";
 }
 
 export async function resolveRoutePlanDiagnostics(

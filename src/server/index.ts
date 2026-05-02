@@ -3,6 +3,7 @@ import cors from "cors";
 import express from "express";
 import { chatRouter } from "./routes/chat";
 import { dataRouter } from "./routes/data";
+import { createDataProxyRouter } from "./routes/data-proxy";
 import { handleJupyterUpgrade, jupyterRouter } from "./routes/jupyter";
 import { marketRouter } from "./routes/market";
 import { newsRouter } from "./routes/news";
@@ -14,6 +15,10 @@ const allowedOrigins = (process.env.FRONTEND_ORIGIN ?? "")
   .map((value) => value.trim())
   .filter(Boolean);
 const port = Number.parseInt(process.env.PORT ?? "4000", 10);
+const rawDataRouterUrl =
+  process.env.DATA_ROUTER_URL?.trim() || "http://127.0.0.1:4100";
+const dataRouterUrl =
+  rawDataRouterUrl.toLowerCase() === "embedded" ? undefined : rawDataRouterUrl;
 
 app.use(
   cors({
@@ -40,7 +45,7 @@ app.get("/health", (_req, res) => {
 // Returns 503 when OPENBB_BASE_URL is set but unreachable; other services are
 // informational only and do not affect the HTTP status.
 app.get("/ready", async (_req, res) => {
-  type ServiceStatus = "ok" | "unreachable" | "not-configured";
+  type ServiceStatus = "ok" | "unreachable" | "not-configured" | "embedded";
   const services: Record<string, ServiceStatus> = {};
   let openbbDegraded = false;
 
@@ -69,6 +74,14 @@ app.get("/ready", async (_req, res) => {
     services.moniker_resolver = "not-configured";
   }
 
+  if (dataRouterUrl) {
+    const reachable = await probeService(`${dataRouterUrl}/ready`);
+    services.data_router = reachable ? "ok" : "unreachable";
+    if (!reachable) openbbDegraded = true;
+  } else {
+    services.data_router = "embedded";
+  }
+
   const jupyterGatewayUrl = process.env.JUPYTER_GATEWAY_URL?.trim();
   if (jupyterGatewayUrl) {
     services.jupyter_gateway = (await probeService(jupyterGatewayUrl))
@@ -83,7 +96,10 @@ app.get("/ready", async (_req, res) => {
 });
 
 app.use("/api/chat", chatRouter);
-app.use("/api/data", dataRouter);
+app.use(
+  "/api/data",
+  dataRouterUrl ? createDataProxyRouter(dataRouterUrl) : dataRouter,
+);
 app.use("/api/jupyter", jupyterRouter);
 app.use("/api/market", marketRouter);
 app.use("/api/news", newsRouter);

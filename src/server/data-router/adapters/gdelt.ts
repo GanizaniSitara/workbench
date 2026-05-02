@@ -1,4 +1,6 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import https from "node:https";
+import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { RouteStep } from "../route-plan";
 
@@ -59,9 +61,14 @@ export interface GdeltNewsResult {
 const DEFAULT_QUERY =
   '("financial markets" OR "central bank" OR "bond yields" OR "stock market" OR earnings) sourcelang:English';
 const DEFAULT_TIMESPAN = "24h";
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 15 * 60 * 1000;
+const STALE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const MIN_REQUEST_INTERVAL_MS = 5_500;
 const REQUEST_TIMEOUT_MS = 45_000;
+const DISK_CACHE_PATH = resolve(
+  process.cwd(),
+  process.env.GDELT_CACHE_PATH ?? ".cache/gdelt-news-cache.json",
+);
 
 const QUERY_PRESETS: Record<string, string> = {
   markets: DEFAULT_QUERY,
@@ -75,11 +82,79 @@ const cache = new Map<
   string,
   {
     expiresAt: number;
+    staleUntil: number;
     pending?: Promise<GdeltNewsResult>;
     payload?: GdeltNewsResult;
   }
 >();
 let lastRequestAt = 0;
+let diskCacheLoaded = false;
+
+function loadDiskCache(): void {
+  if (diskCacheLoaded) return;
+  diskCacheLoaded = true;
+  if (!existsSync(DISK_CACHE_PATH)) return;
+
+  try {
+    const raw = JSON.parse(readFileSync(DISK_CACHE_PATH, "utf8")) as Record<
+      string,
+      {
+        expiresAt?: unknown;
+        staleUntil?: unknown;
+        payload?: unknown;
+      }
+    >;
+    const now = Date.now();
+    for (const [key, entry] of Object.entries(raw)) {
+      if (
+        typeof entry.expiresAt !== "number" ||
+        typeof entry.staleUntil !== "number" ||
+        entry.staleUntil <= now ||
+        !entry.payload
+      ) {
+        continue;
+      }
+      const payload = entry.payload as Partial<GdeltNewsResult>;
+      if (!Array.isArray(payload.results) || payload.results.length === 0) {
+        continue;
+      }
+      cache.set(key, {
+        expiresAt: entry.expiresAt,
+        staleUntil: entry.staleUntil,
+        payload: payload as GdeltNewsResult,
+      });
+    }
+  } catch {
+    // Cache is best-effort; corrupt files should not block the data router.
+  }
+}
+
+function persistDiskCache(): void {
+  try {
+    const now = Date.now();
+    const payload = Object.fromEntries(
+      Array.from(cache.entries())
+        .filter(
+          ([, entry]) =>
+            entry.payload &&
+            entry.payload.results.length > 0 &&
+            entry.staleUntil > now,
+        )
+        .map(([key, entry]) => [
+          key,
+          {
+            expiresAt: entry.expiresAt,
+            staleUntil: entry.staleUntil,
+            payload: entry.payload,
+          },
+        ]),
+    );
+    mkdirSync(dirname(DISK_CACHE_PATH), { recursive: true });
+    writeFileSync(DISK_CACHE_PATH, JSON.stringify(payload), "utf8");
+  } catch {
+    // The in-memory cache remains usable if the disk cache cannot be written.
+  }
+}
 
 function routeString(route: RouteStep, key: string, fallback: string): string {
   const value = route.ref[key];
@@ -177,13 +252,10 @@ async function fetchGdeltJson<T>(url: URL): Promise<T> {
 
   try {
     return await httpsJson<T>(url);
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("HTTP 429")) {
-      await delay(MIN_REQUEST_INTERVAL_MS);
-      lastRequestAt = Date.now();
-      return httpsJson<T>(url);
-    }
-    throw error;
+  } catch {
+    await delay(MIN_REQUEST_INTERVAL_MS);
+    lastRequestAt = Date.now();
+    return httpsJson<T>(url);
   }
 }
 
@@ -258,6 +330,85 @@ function normalizeArticles(
     }));
 }
 
+async function fetchFreshNewsFromGdelt(
+  route: RouteStep,
+  topic: string,
+  limit: number,
+): Promise<GdeltNewsResult> {
+  const toneUrl = buildGdeltUrl(route, "timelinetone");
+  const articleUrl = buildGdeltUrl(route, "artlist");
+  const articles = await fetchGdeltJson<GdeltArticleResponse>(articleUrl);
+  let consensus: NewsConsensus;
+  try {
+    consensus = buildConsensus(
+      await fetchGdeltJson<GdeltTimelineResponse>(toneUrl),
+    );
+  } catch {
+    consensus = buildConsensus({});
+  }
+
+  return {
+    provider: "gdelt" as const,
+    topic,
+    results: normalizeArticles(articles, limit),
+    consensus,
+    sentiment: consensus,
+  };
+}
+
+function startRefresh(
+  cacheKey: string,
+  route: RouteStep,
+  topic: string,
+  limit: number,
+): Promise<GdeltNewsResult> {
+  const previous = cache.get(cacheKey);
+  const pending = fetchFreshNewsFromGdelt(route, topic, limit);
+
+  cache.set(cacheKey, {
+    expiresAt: previous?.expiresAt ?? 0,
+    staleUntil: previous?.staleUntil ?? 0,
+    payload: previous?.payload,
+    pending,
+  });
+
+  void pending
+    .then((payload) => {
+      if (payload.results.length === 0 && previous?.payload?.results.length) {
+        cache.set(cacheKey, {
+          ...previous,
+          expiresAt: Date.now() + CACHE_TTL_MS,
+          staleUntil: Date.now() + STALE_CACHE_TTL_MS,
+        });
+        persistDiskCache();
+        return;
+      }
+
+      cache.set(cacheKey, {
+        expiresAt: Date.now() + CACHE_TTL_MS,
+        staleUntil: Date.now() + STALE_CACHE_TTL_MS,
+        payload,
+      });
+      persistDiskCache();
+    })
+    .catch(() => {
+      if (previous?.payload) {
+        cache.set(cacheKey, previous);
+      } else {
+        cache.delete(cacheKey);
+      }
+    });
+
+  return pending;
+}
+
+function needsConsensusRefresh(payload: GdeltNewsResult): boolean {
+  return (
+    payload.consensus.averageTone === null ||
+    payload.consensus.timeline.length === 0
+  );
+}
+
 export async function fetchNewsFromGdelt(
   route: RouteStep,
 ): Promise<GdeltNewsResult> {
@@ -266,44 +417,25 @@ export async function fetchNewsFromGdelt(
   const toneUrl = buildGdeltUrl(route, "timelinetone");
   const articleUrl = buildGdeltUrl(route, "artlist");
   const cacheKey = `${toneUrl.toString()}|${articleUrl.toString()}`;
+  loadDiskCache();
   const cached = cache.get(cacheKey);
+  const now = Date.now();
 
-  if (cached?.payload && cached.expiresAt > Date.now()) {
+  if (cached?.payload && cached.expiresAt > now) {
+    if (needsConsensusRefresh(cached.payload) && !cached.pending) {
+      void startRefresh(cacheKey, route, topic, limit);
+    }
     return cached.payload;
   }
+
+  if (cached?.payload && cached.staleUntil > now) {
+    if (!cached.pending) {
+      void startRefresh(cacheKey, route, topic, limit);
+    }
+    return cached.payload;
+  }
+
   if (cached?.pending) return cached.pending;
 
-  const pending = (async () => {
-    const tone = await fetchGdeltJson<GdeltTimelineResponse>(toneUrl);
-    let articles: GdeltArticleResponse = { articles: [] };
-    try {
-      articles = await fetchGdeltJson<GdeltArticleResponse>(articleUrl);
-    } catch {
-      articles = { articles: [] };
-    }
-
-    const consensus = buildConsensus(tone);
-    return {
-      provider: "gdelt" as const,
-      topic,
-      results: normalizeArticles(articles, limit),
-      consensus,
-      sentiment: consensus,
-    };
-  })();
-
-  cache.set(cacheKey, { expiresAt: 0, pending });
-
-  try {
-    const payload = await pending;
-    cache.set(cacheKey, {
-      expiresAt: Date.now() + CACHE_TTL_MS,
-      payload,
-    });
-    return payload;
-  } catch (error) {
-    cache.delete(cacheKey);
-    if (cached?.payload) return cached.payload;
-    throw error;
-  }
+  return startRefresh(cacheKey, route, topic, limit);
 }

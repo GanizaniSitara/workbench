@@ -223,7 +223,8 @@ describe("resolveRoutePlan", () => {
     });
   });
 
-  it("uses direct route-plan stubs by default even when the resolver URL is configured", async () => {
+  it("uses direct route-plan stubs when direct routing mode is explicit", async () => {
+    process.env.DATA_ROUTING_MODE = "direct";
     process.env.MONIKER_RESOLVER_URL = "http://moniker.test";
     const requestedUrls: string[] = [];
 
@@ -243,6 +244,32 @@ describe("resolveRoutePlan", () => {
     expect(requestedUrls).toEqual([]);
     expect(diagnostics.mode).toBe("direct");
     expect(diagnostics.routingMode).toBe("direct");
+    expect(diagnostics.plan?.routes.map((route) => route.source)).toEqual([
+      "questdb",
+      "openbb",
+    ]);
+  });
+
+  it("contacts the Open Moniker route-plan endpoint by default when configured", async () => {
+    process.env.MONIKER_RESOLVER_URL = "http://moniker.test";
+    const requestedUrls: string[] = [];
+
+    globalThis.fetch = async (input) => {
+      requestedUrls.push(String(input));
+      return new Response(JSON.stringify({ error: "not found" }), {
+        status: 404,
+      });
+    };
+
+    const diagnostics = await resolveRoutePlanDiagnostics({
+      moniker: "macro.indicators/DGS10/date@latest",
+      shape: "timeseries",
+      params: { limit: 31 },
+    });
+
+    expect(requestedUrls).toHaveLength(1);
+    expect(diagnostics.mode).toBe("moniker-service-fallback");
+    expect(diagnostics.routingMode).toBe("moniker-service");
     expect(diagnostics.plan?.routes.map((route) => route.source)).toEqual([
       "questdb",
       "openbb",

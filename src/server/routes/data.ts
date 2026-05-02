@@ -31,6 +31,47 @@ function parseParams(value: unknown): DatasetRequest["params"] {
   ) as DatasetRequest["params"];
 }
 
+function parseQueryParamValue(
+  value: unknown,
+): string | number | boolean | undefined {
+  const scalar = Array.isArray(value) ? value[0] : value;
+  if (typeof scalar !== "string") {
+    return typeof scalar === "number"
+      ? Number.isFinite(scalar)
+        ? scalar
+        : undefined
+      : typeof scalar === "boolean"
+        ? scalar
+        : undefined;
+  }
+
+  const trimmed = scalar.trim();
+  if (!trimmed) return "";
+  if (trimmed === "true") return true;
+  if (trimmed === "false") return false;
+
+  const numeric = Number(trimmed);
+  return Number.isFinite(numeric) && String(numeric) === trimmed
+    ? numeric
+    : trimmed;
+}
+
+function parseRoutePlanQueryParams(
+  query: Record<string, unknown>,
+): DatasetRequest["params"] {
+  const entries = Object.entries(query)
+    .filter(([key]) => key !== "moniker" && key !== "shape")
+    .map(([key, value]) => [
+      key.startsWith("param.") ? key.slice("param.".length) : key,
+      parseQueryParamValue(value),
+    ])
+    .filter((entry): entry is [string, string | number | boolean] => {
+      return entry[1] !== undefined;
+    });
+
+  return entries.length ? Object.fromEntries(entries) : undefined;
+}
+
 function parseDataQueryRequest(body: unknown): QueryParseResult {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return { ok: false, error: "Request body must be an object" };
@@ -98,6 +139,7 @@ dataRouter.get("/route-plan", async (req, res) => {
     const diagnostics = await resolveRoutePlanDiagnostics({
       moniker,
       shape: shape as DatasetShape | undefined,
+      params: parseRoutePlanQueryParams(req.query),
     });
 
     if (!diagnostics.plan) {

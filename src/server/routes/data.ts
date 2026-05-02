@@ -329,11 +329,30 @@ const LOCAL_MONIKER_TREE: MonikerTreeNode[] = [
   }),
 ];
 
+const ROOT_ORDER = new Map(
+  [
+    "benchmarks",
+    "corporate.bonds",
+    "macro.indicators",
+    "equity.prices",
+    "news",
+  ].map((path, index) => [path, index]),
+);
+
 function cloneTree(nodes: MonikerTreeNode[]): MonikerTreeNode[] {
   return nodes.map((node) => ({
     ...node,
     children: cloneTree(node.children ?? []),
   }));
+}
+
+function sortRootTree(nodes: MonikerTreeNode[]): MonikerTreeNode[] {
+  return [...nodes].sort((a, b) => {
+    const leftRank = ROOT_ORDER.get(a.path) ?? Number.POSITIVE_INFINITY;
+    const rightRank = ROOT_ORDER.get(b.path) ?? Number.POSITIVE_INFINITY;
+    if (leftRank !== rightRank) return leftRank - rightRank;
+    return (a.name || a.path).localeCompare(b.name || b.path);
+  });
 }
 
 function fallbackName(target: MonikerTreeNode, addition: MonikerTreeNode) {
@@ -366,6 +385,7 @@ function mergeTreeNode(
 function mergeMonikerTree(
   primary: MonikerTreeNode[],
   additions: MonikerTreeNode[],
+  sortRoots = false,
 ): MonikerTreeNode[] {
   const merged = cloneTree(primary);
   const byPath = new Map(merged.map((node, index) => [node.path, index]));
@@ -380,7 +400,7 @@ function mergeMonikerTree(
     merged[existingIndex] = mergeTreeNode(merged[existingIndex], addition);
   }
 
-  return merged;
+  return sortRoots ? sortRootTree(merged) : merged;
 }
 
 function catalogMatches(item: SearchResult, q: string): boolean {
@@ -484,7 +504,7 @@ dataRouter.get("/moniker-tree", async (_req, res) => {
     return res.json({
       mode: "resolver",
       resolverUrl,
-      tree: mergeMonikerTree(tree, LOCAL_MONIKER_TREE),
+      tree: mergeMonikerTree(tree, LOCAL_MONIKER_TREE, true),
     });
   } catch {
     return res.json({

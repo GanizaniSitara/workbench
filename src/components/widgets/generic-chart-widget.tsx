@@ -16,6 +16,7 @@ import {
   useRef,
   useState,
   type DragEvent,
+  type KeyboardEvent,
 } from "react";
 import { apiUrl } from "@/lib/api-base";
 import { queryData } from "@/lib/data-query";
@@ -52,6 +53,13 @@ interface ChartEntry {
 
 interface PickerOption extends ChartEntry {
   description?: string;
+}
+
+interface PickerRow {
+  key: string;
+  label: string;
+  detail: string;
+  entry: ChartEntry;
 }
 
 type PickerState =
@@ -285,6 +293,7 @@ export function GenericChartWidget({
   onConfigChange?: (config: Record<string, string>) => void;
 } = {}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const pickerListRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesApisRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
   const lastProcessedMonikerRef = useRef<string>("");
@@ -301,6 +310,7 @@ export function GenericChartWidget({
   const [notice, setNotice] = useState("");
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
+  const [activePickerIndex, setActivePickerIndex] = useState(-1);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
   useEffect(() => {
@@ -335,6 +345,7 @@ export function GenericChartWidget({
       setNotice("");
       setPicker(null);
       setPickerQuery("");
+      setActivePickerIndex(-1);
       setSearchResults([]);
       const exists = entries.some((item) => item.moniker === entry.moniker);
       const nextEntries = exists ? entries : [...entries, entry];
@@ -354,6 +365,7 @@ export function GenericChartWidget({
         setNotice("");
         setPicker(nextPicker);
         setPickerQuery("");
+        setActivePickerIndex(-1);
         setSearchResults([]);
         onConfigChange?.({ moniker: canonicalMoniker(normalized) });
         return;
@@ -366,6 +378,7 @@ export function GenericChartWidget({
       }
 
       setPicker(null);
+      setActivePickerIndex(-1);
       setNotice(`No chart route for ${normalized}`);
       onConfigChange?.({ moniker: normalized });
     },
@@ -544,6 +557,7 @@ export function GenericChartWidget({
   useEffect(() => {
     if (!picker || picker.kind !== "search") {
       setSearchResults([]);
+      setActivePickerIndex(-1);
       return;
     }
 
@@ -552,6 +566,7 @@ export function GenericChartWidget({
     const query = pickerQuery.trim();
     if (!query) {
       setSearchResults([]);
+      setActivePickerIndex(-1);
       return;
     }
 
@@ -608,16 +623,19 @@ export function GenericChartWidget({
     addEntry({ moniker: `equity.prices/${query}`, label: query });
   }
 
-  const filteredOptions =
-    picker?.kind === "options"
-      ? picker.options.filter((option) => {
-          const normalizedQuery = pickerQuery.trim().toLowerCase();
-          if (!normalizedQuery) return true;
-          return `${option.label} ${option.moniker} ${option.description ?? ""}`
-            .toLowerCase()
-            .includes(normalizedQuery);
-        })
-      : [];
+  const filteredOptions = useMemo(
+    () =>
+      picker?.kind === "options"
+        ? picker.options.filter((option) => {
+            const normalizedQuery = pickerQuery.trim().toLowerCase();
+            if (!normalizedQuery) return true;
+            return `${option.label} ${option.moniker} ${option.description ?? ""}`
+              .toLowerCase()
+              .includes(normalizedQuery);
+          })
+        : [],
+    [picker, pickerQuery],
+  );
   const directTicker =
     picker?.kind === "search" && isProbablyTicker(pickerQuery)
       ? pickerQuery.trim().toUpperCase()
@@ -625,6 +643,117 @@ export function GenericChartWidget({
   const hasDirectTickerResult = searchResults.some(
     (result) => result.symbol.toUpperCase() === directTicker,
   );
+  const pickerRows = useMemo<PickerRow[]>(() => {
+    if (!picker) return [];
+
+    if (picker.kind === "options") {
+      return filteredOptions.map((option) => ({
+        key: option.moniker,
+        label: option.label,
+        detail: option.moniker,
+        entry: option,
+      }));
+    }
+
+    const resultRows = searchResults.map((result) => ({
+      key: `${result.kind}-${result.symbol}`,
+      label: result.symbol.toUpperCase(),
+      detail: result.label,
+      entry: searchResultToEntry(result),
+    }));
+    const directRow =
+      directTicker && !hasDirectTickerResult
+        ? {
+            key: `direct-${directTicker}`,
+            label: directTicker,
+            detail: `equity.prices/${directTicker}`,
+            entry: {
+              moniker: `equity.prices/${directTicker}`,
+              label: directTicker,
+            },
+          }
+        : null;
+
+    return resultRows.length > 0
+      ? [...resultRows, ...(directRow ? [directRow] : [])]
+      : directRow
+        ? [directRow]
+        : [];
+  }, [
+    directTicker,
+    filteredOptions,
+    hasDirectTickerResult,
+    picker,
+    searchResults,
+  ]);
+
+  useEffect(() => {
+    if (activePickerIndex < 0) return;
+    if (!pickerRows.length) {
+      setActivePickerIndex(-1);
+      return;
+    }
+    if (activePickerIndex >= pickerRows.length) {
+      setActivePickerIndex(pickerRows.length - 1);
+    }
+  }, [activePickerIndex, pickerRows.length]);
+
+  function closePicker() {
+    setPicker(null);
+    setActivePickerIndex(-1);
+  }
+
+  function focusPickerRow(index: number) {
+    window.requestAnimationFrame(() => {
+      const button = pickerListRef.current?.querySelector<HTMLButtonElement>(
+        `button[data-picker-index="${index}"]`,
+      );
+      button?.focus({ preventScroll: true });
+      button?.scrollIntoView({ block: "nearest" });
+    });
+  }
+
+  function selectPickerRow(index: number) {
+    const row = pickerRows[index];
+    if (!row) return;
+    addEntry(row.entry);
+  }
+
+  function handlePickerKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === "ArrowDown") {
+      if (!pickerRows.length) return;
+      event.preventDefault();
+      const nextIndex = Math.min(activePickerIndex + 1, pickerRows.length - 1);
+      setActivePickerIndex(nextIndex);
+      focusPickerRow(nextIndex);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      if (!pickerRows.length) return;
+      event.preventDefault();
+      const nextIndex = Math.max(activePickerIndex - 1, 0);
+      setActivePickerIndex(nextIndex);
+      focusPickerRow(nextIndex);
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (activePickerIndex >= 0) {
+        selectPickerRow(activePickerIndex);
+        return;
+      }
+      if (picker?.kind === "search") {
+        submitSearch();
+        return;
+      }
+      selectPickerRow(0);
+      return;
+    }
+
+    if (event.key === "Escape") closePicker();
+  }
 
   return (
     <div
@@ -661,7 +790,7 @@ export function GenericChartWidget({
             <button
               aria-label="Close series picker"
               className="generic-chart__picker-close"
-              onClick={() => setPicker(null)}
+              onClick={closePicker}
               type="button"
             >
               ×
@@ -671,49 +800,39 @@ export function GenericChartWidget({
             <input
               aria-label="Search chart series"
               autoFocus
-              onChange={(event) => setPickerQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && picker.kind === "search") {
-                  event.preventDefault();
-                  submitSearch();
-                }
-                if (event.key === "Escape") setPicker(null);
+              onChange={(event) => {
+                setPickerQuery(event.target.value);
+                setActivePickerIndex(-1);
               }}
+              onKeyDown={handlePickerKeyDown}
               placeholder={
                 picker.kind === "search" ? "Type ticker" : "Search series"
               }
               value={pickerQuery}
             />
           </div>
-          <div className="generic-chart__picker-list">
-            {picker.kind === "options" &&
-              filteredOptions.map((option) => (
-                <button
-                  key={option.moniker}
-                  onClick={() => addEntry(option)}
-                  type="button"
-                >
-                  <span>{option.label}</span>
-                  <code>{option.moniker}</code>
-                </button>
-              ))}
-            {picker.kind === "search" && directTicker && !hasDirectTickerResult && (
-              <button onClick={submitSearch} type="button">
-                <span>{directTicker}</span>
-                <code>{`equity.prices/${directTicker}`}</code>
+          <div
+            aria-label="Chart series results"
+            className="generic-chart__picker-list"
+            onKeyDown={handlePickerKeyDown}
+            ref={pickerListRef}
+            role="listbox"
+          >
+            {pickerRows.map((row, index) => (
+              <button
+                aria-selected={index === activePickerIndex}
+                data-active={index === activePickerIndex ? "true" : undefined}
+                data-picker-index={index}
+                key={row.key}
+                onClick={() => addEntry(row.entry)}
+                onFocus={() => setActivePickerIndex(index)}
+                role="option"
+                type="button"
+              >
+                <span>{row.label}</span>
+                <code>{row.detail}</code>
               </button>
-            )}
-            {picker.kind === "search" &&
-              searchResults.map((result) => (
-                <button
-                  key={`${result.kind}-${result.symbol}`}
-                  onClick={() => addEntry(searchResultToEntry(result))}
-                  type="button"
-                >
-                  <span>{result.symbol}</span>
-                  <code>{result.label}</code>
-                </button>
-              ))}
+            ))}
             {picker.kind === "search" &&
               pickerQuery.trim() &&
               !directTicker &&

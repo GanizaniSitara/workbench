@@ -152,7 +152,7 @@ dataRouter.get("/search", async (req, res) => {
     (item) =>
       item.symbol.includes(q) ||
       item.label.toUpperCase().includes(q),
-  ).slice(0, 6);
+  ).slice(0, 10);
 
   // Equity search via OpenBB — optional, skip if not configured
   let equityMatches: SearchResult[] = [];
@@ -165,7 +165,7 @@ dataRouter.get("/search", async (req, res) => {
         const body = await response.json() as { results?: Array<{ symbol?: string; name?: string }> };
         equityMatches = (body.results ?? [])
           .filter((r) => r.symbol)
-          .slice(0, 8)
+          .slice(0, 16)
           .map((r) => ({
             symbol: String(r.symbol).toUpperCase(),
             label: r.name ?? String(r.symbol),
@@ -178,7 +178,7 @@ dataRouter.get("/search", async (req, res) => {
   }
 
   // FRED results first, then equity
-  const results: SearchResult[] = [...fredMatches, ...equityMatches].slice(0, 12);
+  const results: SearchResult[] = [...fredMatches, ...equityMatches].slice(0, 24);
   return res.json({ results });
 });
 

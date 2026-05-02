@@ -1908,7 +1908,7 @@ code {
 .generic-chart__picker-list {
   display: grid;
   gap: 0.12rem;
-  max-height: 8.5rem;
+  max-height: 18.5rem;
   overflow: auto;
 }
 
@@ -1929,9 +1929,15 @@ code {
   width: 100%;
 }
 
-.generic-chart__picker-list button:hover {
+.generic-chart__picker-list button:hover,
+.generic-chart__picker-list button[data-active="true"],
+.generic-chart__picker-list button:focus-visible {
   background: var(--panel-background-strong);
   border-color: var(--accent);
+}
+
+.generic-chart__picker-list button:focus-visible {
+  outline: none;
 }
 
 .generic-chart__picker-list span {

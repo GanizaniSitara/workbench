@@ -396,6 +396,44 @@ describe("queryData", () => {
     });
   });
 
+  it("normalizes OpenBB FRED rows keyed by symbol", async () => {
+    const requestedUrls: string[] = [];
+    globalThis.fetch = async (input) => {
+      requestedUrls.push(String(input));
+      return new Response(
+        JSON.stringify({
+          results: [
+            { date: "2026-04-29", BAMLC0A0CM: 0.83 },
+            { date: "2026-04-30", BAMLC0A0CM: 0.81 },
+          ],
+        }),
+      );
+    };
+
+    const result = await queryData(
+      {
+        moniker: "corporate.bonds/BAMLC0A0CM",
+        shape: "timeseries",
+        params: { range: "1m" },
+      },
+      { openbbUrl: "http://openbb.test" },
+    );
+
+    expect(result).toEqual({
+      shape: "timeseries",
+      symbol: "BAMLC0A0CM",
+      label: "US IG Corporate OAS",
+      format: "percent",
+      range: "1m",
+      source: "openbb",
+      results: [
+        { date: "2026-04-29", value: 0.83 },
+        { date: "2026-04-30", value: 0.81 },
+      ],
+    });
+    expect(new URL(requestedUrls[0]).searchParams.get("start_date")).toBeTruthy();
+  });
+
   it("normalizes macro snapshot batches through the generic query contract", async () => {
     globalThis.fetch = async (input) => {
       const url = new URL(String(input));

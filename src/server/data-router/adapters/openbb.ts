@@ -26,13 +26,31 @@ function routeUrl(baseUrl: string, route: RouteStep, params = ""): string {
   return `${baseUrl}${endpoint}?${params}${separator}provider=${provider}`;
 }
 
+function startDateForLimit(limit: number): string {
+  const days = Math.max(1, Math.min(limit, 5000));
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+}
+
+function seriesValue(row: Record<string, unknown>, symbol: string): number {
+  const raw =
+    row.value ??
+    row[symbol] ??
+    row[symbol.toLowerCase()] ??
+    row.rate ??
+    row.close;
+  return Number(raw);
+}
+
 function normalizeSeriesResults(
-  rows: Array<{ date?: string; value?: number }>,
+  rows: Array<Record<string, unknown>>,
+  symbol: string,
 ): SeriesPoint[] {
   return rows
     .map((row) => ({
       date: String(row.date ?? "").split("T")[0],
-      value: Number(row.value),
+      value: seriesValue(row, symbol),
     }))
     .filter((point) => point.date && Number.isFinite(point.value))
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -66,8 +84,13 @@ export async function fetchLatestSeriesFromOpenBb(
 ): Promise<OpenBbLatestSeries> {
   try {
     const symbol = String(route.ref.symbol);
+    const startDate = startDateForLimit(45);
     const response = await fetch(
-      routeUrl(baseUrl, route, `symbol=${symbol}&limit=1`),
+      routeUrl(
+        baseUrl,
+        route,
+        `symbol=${symbol}&start_date=${startDate}&limit=45`,
+      ),
       { signal: AbortSignal.timeout(15_000) },
     );
     if (!response.ok) {
@@ -79,10 +102,14 @@ export async function fetchLatestSeriesFromOpenBb(
     }
 
     const body = await response.json();
-    const latest = body?.results?.[0] ?? null;
+    const rows: Array<Record<string, unknown>> = body?.results ?? [];
+    const latest =
+      [...rows]
+        .reverse()
+        .find((row) => Number.isFinite(seriesValue(row, symbol))) ?? null;
     return {
-      value: latest?.value ?? null,
-      date: latest?.date ?? null,
+      value: latest ? seriesValue(latest, symbol) : null,
+      date: typeof latest?.date === "string" ? latest.date.split("T")[0] : null,
     };
   } catch (err) {
     return { value: null, date: null, error: String(err) };
@@ -96,17 +123,22 @@ export async function fetchSeriesFromOpenBb(
 ): Promise<SeriesPoint[] | null> {
   try {
     const symbol = String(route.ref.symbol);
+    const startDate = startDateForLimit(limit);
     const response = await fetch(
-      routeUrl(baseUrl, route, `symbol=${symbol}&limit=${limit}`),
+      routeUrl(
+        baseUrl,
+        route,
+        `symbol=${symbol}&start_date=${startDate}&limit=${limit}`,
+      ),
       { signal: AbortSignal.timeout(15_000) },
     );
     if (!response.ok) return null;
 
     const body = await response.json();
-    const rows: Array<{ date?: string; value?: number }> = body?.results ?? [];
+    const rows: Array<Record<string, unknown>> = body?.results ?? [];
     if (!rows.length) return null;
 
-    const results = normalizeSeriesResults(rows);
+    const results = normalizeSeriesResults(rows, symbol);
     return results.length ? results : null;
   } catch {
     return null;

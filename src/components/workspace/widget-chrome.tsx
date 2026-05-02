@@ -85,7 +85,9 @@ export function WidgetChrome({
   const isSingleton = getWidgetRegistryEntry(widgetType).singleton;
   const isMaximized = maximizedWidgetId === widgetId;
   const normalizedMoniker = moniker?.trim();
-  const showMoniker = widgetSupportsMoniker(widgetType) || Boolean(normalizedMoniker);
+  const showMoniker =
+    widgetType !== "catalog" &&
+    (widgetSupportsMoniker(widgetType) || Boolean(normalizedMoniker));
 
   function handleDragOver(e: React.DragEvent) {
     if (!showMoniker) return;

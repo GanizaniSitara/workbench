@@ -5282,3 +5282,133 @@ code {
   padding: 2rem 0;
   text-align: center;
 }
+
+/* Theme-aware catalog overrides. The catalog widget started with a fixed dark
+   palette; keep that in dark mode but let light mode inherit app tokens. */
+.catalog-widget {
+  --catalog-surface: var(--panel-background);
+  --catalog-surface-strong: var(--panel-background-strong);
+  --catalog-surface-top: var(--panel-background-strong);
+  --catalog-border: var(--panel-border-subtle);
+  --catalog-muted: var(--muted);
+  --catalog-text: var(--foreground);
+  --catalog-text-soft: #334155;
+  --catalog-tab: var(--foreground);
+  --catalog-row-hover: color-mix(in srgb, var(--accent) 8%, transparent);
+  --catalog-card: var(--panel-background);
+  --catalog-code-bg: color-mix(
+    in srgb,
+    var(--accent) 5%,
+    var(--panel-background)
+  );
+  --catalog-input-bg: #ffffff;
+  --catalog-input-border: var(--panel-border);
+  --catalog-input-text: var(--foreground);
+
+  color: var(--catalog-text);
+}
+
+:root[data-theme="dark"] .catalog-widget {
+  --catalog-surface: #293150;
+  --catalog-surface-strong: #1a223f;
+  --catalog-surface-top: var(--panel-background-strong);
+  --catalog-border: rgba(189, 200, 240, 0.14);
+  --catalog-muted: #a7b3cc;
+  --catalog-text: #f4f7fb;
+  --catalog-text-soft: #d5deec;
+  --catalog-tab: #ffffff;
+  --catalog-row-hover: rgba(33, 150, 243, 0.08);
+  --catalog-card: var(--catalog-surface-strong);
+  --catalog-code-bg: rgba(255, 255, 255, 0.05);
+  --catalog-input-bg: #ffffff;
+  --catalog-input-border: #bfc5ca;
+  --catalog-input-text: #222222;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .catalog-widget {
+    --catalog-surface: #293150;
+    --catalog-surface-strong: #1a223f;
+    --catalog-surface-top: var(--panel-background-strong);
+    --catalog-border: rgba(189, 200, 240, 0.14);
+    --catalog-muted: #a7b3cc;
+    --catalog-text: #f4f7fb;
+    --catalog-text-soft: #d5deec;
+    --catalog-tab: #ffffff;
+    --catalog-row-hover: rgba(33, 150, 243, 0.08);
+    --catalog-card: var(--catalog-surface-strong);
+    --catalog-code-bg: rgba(255, 255, 255, 0.05);
+    --catalog-input-bg: #ffffff;
+    --catalog-input-border: #bfc5ca;
+    --catalog-input-text: #222222;
+  }
+}
+
+.catalog-widget__topbar,
+.catalog-widget__tab {
+  color: var(--catalog-tab);
+}
+
+.catalog-widget__filters,
+.catalog-widget__tree-row,
+.catalog-widget__result,
+.catalog-widget__status {
+  color: var(--catalog-text);
+}
+
+.catalog-widget__filter-head strong,
+.catalog-widget__filter-head button:hover,
+.catalog-widget__scopebar button,
+.catalog-widget__detail-heading h2,
+.catalog-widget__detail-query code,
+.catalog-widget__detail-actions button,
+.catalog-widget__detail-section h3,
+.catalog-widget__detail-field dd,
+.catalog-widget__tree-actions button,
+.catalog-widget__tree-row[data-leaf="true"] .catalog-widget__tree-name,
+.catalog-widget__tree-toggle:hover,
+.catalog-widget__result-title,
+.catalog-widget__open-pill {
+  color: var(--catalog-text);
+}
+
+.catalog-widget__check-row,
+.catalog-widget__detail-heading p,
+.catalog-widget__tree-name,
+.catalog-widget__result-description {
+  color: var(--catalog-text-soft);
+}
+
+.catalog-widget__tree-row:hover,
+.catalog-widget__tree-row[data-active="true"],
+.catalog-widget__tree-toggle:hover,
+.catalog-widget__result:hover,
+.catalog-widget__result[data-active="true"] {
+  background: var(--catalog-row-hover);
+}
+
+.catalog-widget__detail-query,
+.catalog-widget__detail-section,
+.catalog-widget__tree-actions button,
+.catalog-widget__open-pill {
+  background: var(--catalog-card);
+}
+
+.catalog-widget__detail-query code {
+  background: var(--catalog-code-bg);
+}
+
+.catalog-widget__search-icon {
+  border-color: var(--catalog-muted);
+}
+
+.catalog-widget__search-icon::after,
+.catalog-widget__tree-spacer::before {
+  background: var(--catalog-muted);
+}
+
+.catalog-widget__search input {
+  background: var(--catalog-input-bg);
+  border-color: var(--catalog-input-border);
+  color: var(--catalog-input-text);
+}

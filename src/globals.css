@@ -1738,6 +1738,11 @@ code {
   color: #0067b8;
 }
 
+.overlay-chart__dropdown-kind--bond {
+  background: color-mix(in srgb, #7c3aed 13%, transparent);
+  color: #6d28d9;
+}
+
 .overlay-chart__legend {
   display: flex;
   flex-wrap: wrap;

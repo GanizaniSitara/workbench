@@ -36,6 +36,20 @@ const MACRO_SERIES = [
   { id: "VIXCLS", label: "VIX" },
 ] as const;
 
+const MACRO_SYMBOLS: Set<string> = new Set(
+  MACRO_SERIES.map((series) => series.id),
+);
+
+const CORPORATE_BOND_SYMBOLS = new Set([
+  "BAMLC0A0CM",
+  "BAMLH0A0HYM2",
+  "BAMLC0A0CMEY",
+  "BAMLH0A0HYM2EY",
+  "BAMLCC0A0CMTRIV",
+  "BAMLHYH0A0HYM2TRIV",
+  "BAMLHE00EHYIOAS",
+]);
+
 const SERIES_INFO: Record<
   string,
   { label: string; format: "percent" | "level" }
@@ -168,10 +182,24 @@ function readNumberParam(
     : undefined;
 }
 
-function symbolFromMoniker(moniker: string): string | null {
+function symbolFromMacroMoniker(moniker: string): string | null {
   const parts = canonicalMoniker(moniker).split("/");
+  if (parts[0] !== "macro.indicators") return null;
   const symbol = parts[parts.length - 1]?.toUpperCase();
-  return symbol && SERIES_INFO[symbol] ? symbol : null;
+  return symbol && MACRO_SYMBOLS.has(symbol) ? symbol : null;
+}
+
+function symbolFromCorporateBondMoniker(moniker: string): string | null {
+  const parts = canonicalMoniker(moniker).split("/");
+  if (parts[0] !== "corporate.bonds") return null;
+  const symbol = parts[parts.length - 1]?.toUpperCase();
+  return symbol && CORPORATE_BOND_SYMBOLS.has(symbol) ? symbol : null;
+}
+
+function symbolFromSeriesMoniker(moniker: string): string | null {
+  return (
+    symbolFromMacroMoniker(moniker) ?? symbolFromCorporateBondMoniker(moniker)
+  );
 }
 
 function referenceRateFromMoniker(
@@ -282,7 +310,7 @@ async function querySnapshot(
     return { shape: "snapshot" as const, results };
   }
 
-  const symbol = symbolFromMoniker(request.moniker);
+  const symbol = symbolFromMacroMoniker(request.moniker);
   const series = symbol ? SERIES_INFO[symbol] : null;
   if (!symbol || !series) {
     throw new DataQueryError(400, `Unsupported snapshot: ${request.moniker}`);
@@ -297,7 +325,7 @@ async function queryTimeseries(
   env: DataQueryEnv,
 ): Promise<TimeseriesQueryResult> {
   const normalizedRequest = withSymbolFromParams(request);
-  const requestedSymbol = symbolFromMoniker(normalizedRequest.moniker);
+  const requestedSymbol = symbolFromSeriesMoniker(normalizedRequest.moniker);
   const series = requestedSymbol ? SERIES_INFO[requestedSymbol] : null;
 
   if (!requestedSymbol || !series) {
@@ -629,7 +657,10 @@ export async function queryData(
   if (request.shape === "timeseries") {
     const normalizedRequest = withSymbolFromParams(request);
     const normalizedCanonical = canonicalMoniker(normalizedRequest.moniker);
-    if (normalizedCanonical.startsWith("macro.indicators/")) {
+    if (
+      normalizedCanonical.startsWith("macro.indicators/") ||
+      normalizedCanonical.startsWith("corporate.bonds/")
+    ) {
       return queryTimeseries(normalizedRequest, env);
     }
   }

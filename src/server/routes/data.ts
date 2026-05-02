@@ -121,7 +121,19 @@ dataRouter.get("/route-plan", async (req, res) => {
 interface SearchResult {
   symbol: string;
   label: string;
-  kind: "macro" | "equity";
+  kind: "bond" | "equity" | "macro";
+}
+
+interface MonikerTreeNode {
+  path: string;
+  name: string;
+  children: MonikerTreeNode[];
+  source_type: string | null;
+  has_source_binding: boolean;
+  description?: string | null;
+  domain?: string | null;
+  resolved_domain?: string | null;
+  vendor?: string | null;
 }
 
 const FRED_CATALOG: SearchResult[] = [
@@ -138,13 +150,16 @@ const FRED_CATALOG: SearchResult[] = [
   { symbol: "FEDFUNDS", label: "Effective Federal Funds Rate",     kind: "macro" },
   { symbol: "UNRATE",   label: "Unemployment Rate",                kind: "macro" },
   { symbol: "CPIAUCSL", label: "CPI All Items (FRED)",             kind: "macro" },
-  { symbol: "BAMLC0A0CM",         label: "ICE BofA US Corporate OAS",        kind: "macro" },
-  { symbol: "BAMLH0A0HYM2",       label: "ICE BofA US High Yield OAS",       kind: "macro" },
-  { symbol: "BAMLC0A0CMEY",       label: "ICE BofA US Corporate Yield",      kind: "macro" },
-  { symbol: "BAMLH0A0HYM2EY",     label: "ICE BofA US High Yield Yield",     kind: "macro" },
-  { symbol: "BAMLCC0A0CMTRIV",    label: "ICE BofA US Corporate Total Return", kind: "macro" },
-  { symbol: "BAMLHYH0A0HYM2TRIV", label: "ICE BofA US High Yield Total Return", kind: "macro" },
-  { symbol: "BAMLHE00EHYIOAS",    label: "ICE BofA Euro High Yield OAS",     kind: "macro" },
+];
+
+const CORPORATE_BOND_CATALOG: SearchResult[] = [
+  { symbol: "BAMLC0A0CM",         label: "ICE BofA US Corporate OAS",        kind: "bond" },
+  { symbol: "BAMLH0A0HYM2",       label: "ICE BofA US High Yield OAS",       kind: "bond" },
+  { symbol: "BAMLC0A0CMEY",       label: "ICE BofA US Corporate Yield",      kind: "bond" },
+  { symbol: "BAMLH0A0HYM2EY",     label: "ICE BofA US High Yield Yield",     kind: "bond" },
+  { symbol: "BAMLCC0A0CMTRIV",    label: "ICE BofA US Corporate Total Return", kind: "bond" },
+  { symbol: "BAMLHYH0A0HYM2TRIV", label: "ICE BofA US High Yield Total Return", kind: "bond" },
+  { symbol: "BAMLHE00EHYIOAS",    label: "ICE BofA Euro High Yield OAS",     kind: "bond" },
 ];
 
 const UK_EQUITY_CATALOG: SearchResult[] = [
@@ -178,6 +193,130 @@ const UK_EQUITY_CATALOG: SearchResult[] = [
   { symbol: "BT-A.L", label: "BT Group PLC", kind: "equity" },
 ];
 
+function catalogLeaf(
+  prefix: string,
+  item: SearchResult,
+  {
+    domain,
+    sourceType,
+    vendor,
+  }: {
+    domain: string;
+    sourceType: string;
+    vendor: string;
+  },
+): MonikerTreeNode {
+  return {
+    path: `${prefix}/${item.symbol}`,
+    name: item.symbol,
+    children: [],
+    source_type: sourceType,
+    has_source_binding: true,
+    description: item.label,
+    domain,
+    resolved_domain: domain,
+    vendor,
+  };
+}
+
+function catalogRoot({
+  children,
+  description,
+  domain,
+  path,
+  vendor,
+}: {
+  children: MonikerTreeNode[];
+  description: string;
+  domain: string;
+  path: string;
+  vendor: string;
+}): MonikerTreeNode {
+  return {
+    path,
+    name: path,
+    children,
+    source_type: null,
+    has_source_binding: false,
+    description,
+    domain,
+    resolved_domain: domain,
+    vendor,
+  };
+}
+
+const LOCAL_MONIKER_TREE: MonikerTreeNode[] = [
+  catalogRoot({
+    path: "macro.indicators",
+    description: "FRED macro indicators",
+    domain: "macro.indicators",
+    vendor: "fred",
+    children: FRED_CATALOG.map((item) =>
+      catalogLeaf("macro.indicators", item, {
+        domain: "macro.indicators",
+        sourceType: "fred",
+        vendor: "fred",
+      }),
+    ),
+  }),
+  catalogRoot({
+    path: "corporate.bonds",
+    description: "Corporate bond index series from FRED",
+    domain: "corporate.bonds",
+    vendor: "fred",
+    children: CORPORATE_BOND_CATALOG.map((item) =>
+      catalogLeaf("corporate.bonds", item, {
+        domain: "corporate.bonds",
+        sourceType: "fred",
+        vendor: "fred",
+      }),
+    ),
+  }),
+  catalogRoot({
+    path: "equity.prices",
+    description: "Equity and index price history",
+    domain: "equity.prices",
+    vendor: "yfinance",
+    children: UK_EQUITY_CATALOG.map((item) =>
+      catalogLeaf("equity.prices", item, {
+        domain: "equity.prices",
+        sourceType: "yfinance",
+        vendor: "yfinance",
+      }),
+    ),
+  }),
+  catalogRoot({
+    path: "news",
+    description: "News datasets",
+    domain: "news",
+    vendor: "gdelt",
+    children: [
+      {
+        path: "news/gdelt",
+        name: "GDELT",
+        children: [],
+        source_type: "gdelt",
+        has_source_binding: true,
+        description: "GDELT market news and sentiment feed",
+        domain: "news",
+        resolved_domain: "news",
+        vendor: "gdelt",
+      },
+      {
+        path: "news.company",
+        name: "Company news",
+        children: [],
+        source_type: "openbb",
+        has_source_binding: true,
+        description: "Company news feed by symbol",
+        domain: "news",
+        resolved_domain: "news",
+        vendor: "openbb",
+      },
+    ],
+  }),
+];
+
 function catalogMatches(item: SearchResult, q: string): boolean {
   return item.symbol.includes(q) || item.label.toUpperCase().includes(q);
 }
@@ -201,6 +340,9 @@ dataRouter.get("/search", async (req, res) => {
 
   // FRED matches — filter client-side from catalog
   const fredMatches = FRED_CATALOG.filter((item) =>
+    catalogMatches(item, q),
+  ).slice(0, 10);
+  const corporateBondMatches = CORPORATE_BOND_CATALOG.filter((item) =>
     catalogMatches(item, q),
   ).slice(0, 10);
   const ukEquityMatches = UK_EQUITY_CATALOG.filter((item) =>
@@ -236,9 +378,10 @@ dataRouter.get("/search", async (req, res) => {
     }
   }
 
-  // FRED results first, then curated UK equity, then live equity search.
+  // FRED/macro first, then corporate bonds, curated UK equity, and live equity search.
   const results: SearchResult[] = dedupeSearchResults([
     ...fredMatches,
+    ...corporateBondMatches,
     ...ukEquityMatches,
     ...equityMatches,
   ]).slice(0, 24);
@@ -248,9 +391,11 @@ dataRouter.get("/search", async (req, res) => {
 dataRouter.get("/moniker-tree", async (_req, res) => {
   const resolverUrl = process.env.MONIKER_RESOLVER_URL?.trim();
   if (!resolverUrl) {
-    return res
-      .status(503)
-      .json({ error: "MONIKER_RESOLVER_URL is not configured" });
+    return res.json({
+      mode: "local-fallback",
+      reason: "MONIKER_RESOLVER_URL is not configured",
+      tree: LOCAL_MONIKER_TREE,
+    });
   }
 
   try {
@@ -260,17 +405,27 @@ dataRouter.get("/moniker-tree", async (_req, res) => {
     const tree = await response.json();
 
     if (!response.ok) {
-      return res.status(response.status).json({
-        error: "Open Moniker tree unavailable",
+      return res.json({
+        mode: "local-fallback",
+        reason: "Open Moniker tree unavailable",
+        resolverStatus: response.status,
         detail: tree,
+        resolverUrl,
+        tree: LOCAL_MONIKER_TREE,
       });
     }
 
     return res.json({
+      mode: "resolver",
       resolverUrl,
       tree,
     });
   } catch {
-    return res.status(502).json({ error: "Open Moniker tree unavailable" });
+    return res.json({
+      mode: "local-fallback",
+      reason: "Open Moniker tree unavailable",
+      resolverUrl,
+      tree: LOCAL_MONIKER_TREE,
+    });
   }
 });

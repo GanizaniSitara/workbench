@@ -14,7 +14,7 @@ import { queryData } from "@/lib/data-query";
 import { apiUrl } from "@/lib/api-base";
 
 type RangeKey = "1m" | "3m" | "6m" | "1y" | "5y" | "max";
-type SeriesKind = "macro" | "equity";
+type SeriesKind = "bond" | "equity" | "macro";
 
 interface ApiPoint {
   date: string;
@@ -190,6 +190,12 @@ export function OverlayChartWidget() {
                     shape: "timeseries",
                     params: { symbol: entry.symbol, range },
                   })
+                : entry.kind === "bond"
+                  ? await queryData<DataResponse>({
+                      moniker: `corporate.bonds/${entry.symbol}`,
+                      shape: "timeseries",
+                      params: { range },
+                    })
                 : await queryData<DataResponse>({
                     moniker: `equity.prices/${entry.symbol}`,
                     shape: "timeseries",
@@ -393,7 +399,11 @@ export function OverlayChartWidget() {
                   <span className="overlay-chart__dropdown-symbol">{s.symbol}</span>
                   <span className="overlay-chart__dropdown-label">{s.label}</span>
                   <span className={`overlay-chart__dropdown-kind overlay-chart__dropdown-kind--${s.kind}`}>
-                    {s.kind === "macro" ? "FRED" : "EQ"}
+                    {s.kind === "macro"
+                      ? "FRED"
+                      : s.kind === "bond"
+                        ? "BOND"
+                        : "EQ"}
                   </span>
                 </li>
               ))}

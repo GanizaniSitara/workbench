@@ -15,6 +15,16 @@ const SERIES_SYMBOLS = new Set([
   "UNRATE",
 ]);
 
+const CORPORATE_BOND_SYMBOLS = new Set([
+  "BAMLC0A0CM",
+  "BAMLH0A0HYM2",
+  "BAMLC0A0CMEY",
+  "BAMLH0A0HYM2EY",
+  "BAMLCC0A0CMTRIV",
+  "BAMLHYH0A0HYM2TRIV",
+  "BAMLHE00EHYIOAS",
+]);
+
 const REFERENCE_RATE_CONFIGS: Record<
   string,
   { endpoint: string; provider: string }
@@ -214,6 +224,46 @@ export const ROUTE_PLAN_STUBS: RoutePlanStub[] = [
           provider: "fred",
           symbol: { from: "context", name: "symbol" },
           limit: { from: "param", name: "limit", default: 1 },
+        },
+      },
+    ],
+    policy: {
+      fallback: "ordered",
+      ttlSeconds: 300,
+    },
+  },
+  {
+    id: "corporate-bonds-fred-series",
+    shapes: ["timeseries"],
+    match: (canonical) => {
+      const parts = canonical.split("/");
+      const symbol = parts[parts.length - 1];
+
+      if (
+        parts[0] !== "corporate.bonds" ||
+        !CORPORATE_BOND_SYMBOLS.has(symbol)
+      ) {
+        return null;
+      }
+
+      return { symbol };
+    },
+    routes: [
+      {
+        source: "questdb",
+        ref: {
+          table: "fred_series",
+          symbol: { from: "context", name: "symbol" },
+          limit: { from: "param", name: "limit", default: 252 },
+        },
+      },
+      {
+        source: "openbb",
+        ref: {
+          endpoint: "/api/v1/economy/fred_series",
+          provider: "fred",
+          symbol: { from: "context", name: "symbol" },
+          limit: { from: "param", name: "limit", default: 252 },
         },
       },
     ],

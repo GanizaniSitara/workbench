@@ -39,7 +39,7 @@ interface TimeseriesResponse {
 interface SearchResult {
   symbol: string;
   label: string;
-  kind: "macro" | "equity";
+  kind: "bond" | "equity" | "macro";
 }
 
 interface SearchResponse {
@@ -131,38 +131,41 @@ const MACRO_OPTIONS: PickerOption[] = [
     label: "Unemployment",
     description: "Unemployment rate",
   },
+];
+
+const CORPORATE_BOND_OPTIONS: PickerOption[] = [
   {
-    moniker: "macro.indicators/BAMLC0A0CM",
+    moniker: "corporate.bonds/BAMLC0A0CM",
     label: "US IG Corporate OAS",
     description: "ICE BofA US Corporate Index option-adjusted spread",
   },
   {
-    moniker: "macro.indicators/BAMLH0A0HYM2",
+    moniker: "corporate.bonds/BAMLH0A0HYM2",
     label: "US High Yield OAS",
     description: "ICE BofA US High Yield Index option-adjusted spread",
   },
   {
-    moniker: "macro.indicators/BAMLC0A0CMEY",
+    moniker: "corporate.bonds/BAMLC0A0CMEY",
     label: "US IG Corporate Yield",
     description: "ICE BofA US Corporate Index effective yield",
   },
   {
-    moniker: "macro.indicators/BAMLH0A0HYM2EY",
+    moniker: "corporate.bonds/BAMLH0A0HYM2EY",
     label: "US High Yield Yield",
     description: "ICE BofA US High Yield Index effective yield",
   },
   {
-    moniker: "macro.indicators/BAMLCC0A0CMTRIV",
+    moniker: "corporate.bonds/BAMLCC0A0CMTRIV",
     label: "US IG Corporate TR",
     description: "ICE BofA US Corporate Index total return",
   },
   {
-    moniker: "macro.indicators/BAMLHYH0A0HYM2TRIV",
+    moniker: "corporate.bonds/BAMLHYH0A0HYM2TRIV",
     label: "US High Yield TR",
     description: "ICE BofA US High Yield Index total return",
   },
   {
-    moniker: "macro.indicators/BAMLHE00EHYIOAS",
+    moniker: "corporate.bonds/BAMLHE00EHYIOAS",
     label: "Euro High Yield OAS",
     description: "ICE BofA Euro High Yield Index option-adjusted spread",
   },
@@ -265,6 +268,15 @@ function pickerForMoniker(moniker: string): PickerState | null {
     };
   }
 
+  if (canonical === "corporate.bonds") {
+    return {
+      kind: "options",
+      moniker: canonical,
+      title: "Corporate bonds",
+      options: CORPORATE_BOND_OPTIONS,
+    };
+  }
+
   if (canonical === "equity.prices" || canonical === "prices.equity") {
     return {
       kind: "search",
@@ -294,6 +306,18 @@ function entryForMoniker(moniker: string): ChartEntry | null {
     };
   }
 
+  const corporateBond = canonical.match(/^corporate\.bonds\/([^/]+)$/);
+  if (corporateBond?.[1]) {
+    const symbol = corporateBond[1].toUpperCase();
+    const option = CORPORATE_BOND_OPTIONS.find((item) =>
+      item.moniker.endsWith(`/${symbol}`),
+    );
+    return {
+      moniker: `corporate.bonds/${symbol}`,
+      label: option?.label ?? symbol,
+    };
+  }
+
   const pnl = canonical.match(/^portfolio\.position\/([^/]+)\/pnl-history$/);
   if (pnl?.[1]) {
     return { moniker: canonical, label: `${pnl[1]} P&L` };
@@ -303,15 +327,22 @@ function entryForMoniker(moniker: string): ChartEntry | null {
 }
 
 function searchResultToEntry(result: SearchResult): ChartEntry {
-  return result.kind === "macro"
-    ? {
-        moniker: `macro.indicators/${result.symbol.toUpperCase()}`,
-        label: result.label || result.symbol.toUpperCase(),
-      }
-    : {
-        moniker: `equity.prices/${result.symbol.toUpperCase()}`,
-        label: result.symbol.toUpperCase(),
-      };
+  if (result.kind === "macro") {
+    return {
+      moniker: `macro.indicators/${result.symbol.toUpperCase()}`,
+      label: result.label || result.symbol.toUpperCase(),
+    };
+  }
+  if (result.kind === "bond") {
+    return {
+      moniker: `corporate.bonds/${result.symbol.toUpperCase()}`,
+      label: result.label || result.symbol.toUpperCase(),
+    };
+  }
+  return {
+    moniker: `equity.prices/${result.symbol.toUpperCase()}`,
+    label: result.symbol.toUpperCase(),
+  };
 }
 
 function isProbablyTicker(value: string): boolean {

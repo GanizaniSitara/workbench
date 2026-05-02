@@ -51,6 +51,41 @@ const STUB_MAP: Record<string, MonikerResolution> = {
     ref: "UNRATE",
     cacheTtlSeconds: 300,
   },
+  "corporate.bonds/BAMLC0A0CM": {
+    sourceType: "fred",
+    ref: "BAMLC0A0CM",
+    cacheTtlSeconds: 300,
+  },
+  "corporate.bonds/BAMLH0A0HYM2": {
+    sourceType: "fred",
+    ref: "BAMLH0A0HYM2",
+    cacheTtlSeconds: 300,
+  },
+  "corporate.bonds/BAMLC0A0CMEY": {
+    sourceType: "fred",
+    ref: "BAMLC0A0CMEY",
+    cacheTtlSeconds: 300,
+  },
+  "corporate.bonds/BAMLH0A0HYM2EY": {
+    sourceType: "fred",
+    ref: "BAMLH0A0HYM2EY",
+    cacheTtlSeconds: 300,
+  },
+  "corporate.bonds/BAMLCC0A0CMTRIV": {
+    sourceType: "fred",
+    ref: "BAMLCC0A0CMTRIV",
+    cacheTtlSeconds: 300,
+  },
+  "corporate.bonds/BAMLHYH0A0HYM2TRIV": {
+    sourceType: "fred",
+    ref: "BAMLHYH0A0HYM2TRIV",
+    cacheTtlSeconds: 300,
+  },
+  "corporate.bonds/BAMLHE00EHYIOAS": {
+    sourceType: "fred",
+    ref: "BAMLHE00EHYIOAS",
+    cacheTtlSeconds: 300,
+  },
   "fixed.income.govies": {
     sourceType: "fred",
     ref: "yield_curve",

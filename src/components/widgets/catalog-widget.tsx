@@ -450,7 +450,7 @@ function toCatalogCard(node: MonikerTreeNode): CatalogCard {
   return {
     id: node.path,
     kind,
-    title: titleFromPath(node.path),
+    title: node.name || titleFromPath(node.path),
     path: node.path,
     description: node.description?.trim() || "Cataloged Workbench resource",
     domain,

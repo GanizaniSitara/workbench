@@ -208,11 +208,11 @@ function catalogLeaf(
 ): MonikerTreeNode {
   return {
     path: `${prefix}/${item.symbol}`,
-    name: item.symbol,
+    name: item.label,
     children: [],
     source_type: sourceType,
     has_source_binding: true,
-    description: item.label,
+    description: item.symbol,
     domain,
     resolved_domain: domain,
     vendor,
@@ -223,21 +223,27 @@ function catalogRoot({
   children,
   description,
   domain,
+  hasSourceBinding = false,
+  name,
   path,
+  sourceType = null,
   vendor,
 }: {
   children: MonikerTreeNode[];
   description: string;
   domain: string;
+  hasSourceBinding?: boolean;
+  name: string;
   path: string;
+  sourceType?: string | null;
   vendor: string;
 }): MonikerTreeNode {
   return {
     path,
-    name: path,
+    name,
     children,
-    source_type: null,
-    has_source_binding: false,
+    source_type: sourceType,
+    has_source_binding: hasSourceBinding,
     description,
     domain,
     resolved_domain: domain,
@@ -248,6 +254,7 @@ function catalogRoot({
 const LOCAL_MONIKER_TREE: MonikerTreeNode[] = [
   catalogRoot({
     path: "macro.indicators",
+    name: "Macro Indicators",
     description: "FRED macro indicators",
     domain: "macro.indicators",
     vendor: "fred",
@@ -261,8 +268,11 @@ const LOCAL_MONIKER_TREE: MonikerTreeNode[] = [
   }),
   catalogRoot({
     path: "corporate.bonds",
+    name: "Corporate Bonds",
     description: "Corporate bond index series from FRED",
     domain: "corporate.bonds",
+    hasSourceBinding: true,
+    sourceType: "fred",
     vendor: "fred",
     children: CORPORATE_BOND_CATALOG.map((item) =>
       catalogLeaf("corporate.bonds", item, {
@@ -274,6 +284,7 @@ const LOCAL_MONIKER_TREE: MonikerTreeNode[] = [
   }),
   catalogRoot({
     path: "equity.prices",
+    name: "Equity Prices",
     description: "Equity and index price history",
     domain: "equity.prices",
     vendor: "yfinance",
@@ -287,6 +298,7 @@ const LOCAL_MONIKER_TREE: MonikerTreeNode[] = [
   }),
   catalogRoot({
     path: "news",
+    name: "News",
     description: "News datasets",
     domain: "news",
     vendor: "gdelt",
@@ -316,6 +328,60 @@ const LOCAL_MONIKER_TREE: MonikerTreeNode[] = [
     ],
   }),
 ];
+
+function cloneTree(nodes: MonikerTreeNode[]): MonikerTreeNode[] {
+  return nodes.map((node) => ({
+    ...node,
+    children: cloneTree(node.children ?? []),
+  }));
+}
+
+function fallbackName(target: MonikerTreeNode, addition: MonikerTreeNode) {
+  const current = target.name?.trim();
+  const lastSegment = target.path.split("/").pop()?.split(".").pop();
+  if (!current || current === target.path || current === lastSegment) {
+    return addition.name;
+  }
+  return current;
+}
+
+function mergeTreeNode(
+  target: MonikerTreeNode,
+  addition: MonikerTreeNode,
+): MonikerTreeNode {
+  return {
+    ...target,
+    name: fallbackName(target, addition),
+    source_type: target.source_type ?? addition.source_type,
+    has_source_binding:
+      target.has_source_binding || addition.has_source_binding,
+    description: target.description ?? addition.description,
+    domain: target.domain ?? addition.domain,
+    resolved_domain: target.resolved_domain ?? addition.resolved_domain,
+    vendor: target.vendor ?? addition.vendor,
+    children: mergeMonikerTree(target.children ?? [], addition.children ?? []),
+  };
+}
+
+function mergeMonikerTree(
+  primary: MonikerTreeNode[],
+  additions: MonikerTreeNode[],
+): MonikerTreeNode[] {
+  const merged = cloneTree(primary);
+  const byPath = new Map(merged.map((node, index) => [node.path, index]));
+
+  for (const addition of additions) {
+    const existingIndex = byPath.get(addition.path);
+    if (existingIndex === undefined) {
+      byPath.set(addition.path, merged.length);
+      merged.push(...cloneTree([addition]));
+      continue;
+    }
+    merged[existingIndex] = mergeTreeNode(merged[existingIndex], addition);
+  }
+
+  return merged;
+}
 
 function catalogMatches(item: SearchResult, q: string): boolean {
   return item.symbol.includes(q) || item.label.toUpperCase().includes(q);
@@ -418,7 +484,7 @@ dataRouter.get("/moniker-tree", async (_req, res) => {
     return res.json({
       mode: "resolver",
       resolverUrl,
-      tree,
+      tree: mergeMonikerTree(tree, LOCAL_MONIKER_TREE),
     });
   } catch {
     return res.json({

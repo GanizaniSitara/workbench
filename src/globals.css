@@ -1691,6 +1691,12 @@ code {
   padding: 0.3rem 0.5rem;
 }
 
+.overlay-chart__dropdown-empty {
+  color: var(--muted);
+  font-size: 0.72rem;
+  padding: 0.45rem 0.55rem;
+}
+
 .overlay-chart__dropdown-item:hover,
 .overlay-chart__dropdown-item--active {
   background: var(--panel-background-strong);

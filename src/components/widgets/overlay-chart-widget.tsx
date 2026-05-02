@@ -99,6 +99,7 @@ export function OverlayChartWidget() {
   const [inputValue, setInputValue] = useState("");
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
 
   // Init chart once
@@ -258,24 +259,37 @@ export function OverlayChartWidget() {
     if (!q) {
       setSuggestions([]);
       setDropdownOpen(false);
+      setSearching(false);
       return;
     }
 
+    let cancelled = false;
+    setSuggestions([]);
+    setActiveIndex(-1);
+    setDropdownOpen(true);
+    setSearching(true);
     searchTimerRef.current = setTimeout(async () => {
       try {
         const res = await fetch(apiUrl(`/api/data/search?q=${encodeURIComponent(q)}`));
         if (res.ok) {
           const body = (await res.json()) as SearchResponse;
-          setSuggestions(body.results ?? []);
-          setDropdownOpen(true);
-          setActiveIndex(-1);
+          if (!cancelled) {
+            setSuggestions(body.results ?? []);
+            setDropdownOpen(true);
+            setActiveIndex(-1);
+          }
+        } else if (!cancelled) {
+          setSuggestions([]);
         }
       } catch {
-        setSuggestions([]);
+        if (!cancelled) setSuggestions([]);
+      } finally {
+        if (!cancelled) setSearching(false);
       }
-    }, 220);
+    }, 80);
 
     return () => {
+      cancelled = true;
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
   }, [inputValue]);
@@ -356,8 +370,13 @@ export function OverlayChartWidget() {
               value={inputValue}
             />
           </div>
-          {dropdownOpen && suggestions.length > 0 && (
+          {dropdownOpen && (suggestions.length > 0 || searching) && (
             <ul className="overlay-chart__dropdown" role="listbox">
+              {searching && suggestions.length === 0 && (
+                <li className="overlay-chart__dropdown-empty">
+                  Searching...
+                </li>
+              )}
               {suggestions.map((s, i) => (
                 <li
                   className={[

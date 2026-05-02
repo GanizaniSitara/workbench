@@ -311,6 +311,7 @@ export function GenericChartWidget({
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
   const [activePickerIndex, setActivePickerIndex] = useState(-1);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
   useEffect(() => {
@@ -346,6 +347,7 @@ export function GenericChartWidget({
       setPicker(null);
       setPickerQuery("");
       setActivePickerIndex(-1);
+      setIsSearchLoading(false);
       setSearchResults([]);
       const exists = entries.some((item) => item.moniker === entry.moniker);
       const nextEntries = exists ? entries : [...entries, entry];
@@ -366,6 +368,7 @@ export function GenericChartWidget({
         setPicker(nextPicker);
         setPickerQuery("");
         setActivePickerIndex(-1);
+        setIsSearchLoading(false);
         setSearchResults([]);
         onConfigChange?.({ moniker: canonicalMoniker(normalized) });
         return;
@@ -558,6 +561,7 @@ export function GenericChartWidget({
     if (!picker || picker.kind !== "search") {
       setSearchResults([]);
       setActivePickerIndex(-1);
+      setIsSearchLoading(false);
       return;
     }
 
@@ -567,28 +571,40 @@ export function GenericChartWidget({
     if (!query) {
       setSearchResults([]);
       setActivePickerIndex(-1);
+      setIsSearchLoading(false);
       return;
     }
 
+    let cancelled = false;
+    setSearchResults([]);
+    setIsSearchLoading(true);
     searchTimerRef.current = setTimeout(async () => {
       try {
         const response = await fetch(
           apiUrl(`/api/data/search?q=${encodeURIComponent(query)}`),
         );
         if (!response.ok) {
-          setSearchResults([]);
+          if (!cancelled) {
+            setSearchResults([]);
+            setIsSearchLoading(false);
+          }
           return;
         }
         const body = (await response.json()) as SearchResponse;
-        setSearchResults(
-          (body.results ?? []).filter((result) => result.kind === "equity"),
-        );
+        if (!cancelled) {
+          setSearchResults(
+            (body.results ?? []).filter((result) => result.kind === "equity"),
+          );
+        }
       } catch {
-        setSearchResults([]);
+        if (!cancelled) setSearchResults([]);
+      } finally {
+        if (!cancelled) setIsSearchLoading(false);
       }
-    }, 220);
+    }, 80);
 
     return () => {
+      cancelled = true;
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
   }, [picker, pickerQuery]);
@@ -701,6 +717,7 @@ export function GenericChartWidget({
   function closePicker() {
     setPicker(null);
     setActivePickerIndex(-1);
+    setIsSearchLoading(false);
   }
 
   function focusPickerRow(index: number) {
@@ -838,7 +855,15 @@ export function GenericChartWidget({
               !directTicker &&
               searchResults.length === 0 && (
                 <div className="generic-chart__picker-empty">
-                  No equity matches
+                  {isSearchLoading ? "Searching..." : "No equity matches"}
+                </div>
+              )}
+            {picker.kind === "search" &&
+              pickerQuery.trim() &&
+              directTicker &&
+              isSearchLoading && (
+                <div className="generic-chart__picker-empty">
+                  Searching...
                 </div>
               )}
           </div>

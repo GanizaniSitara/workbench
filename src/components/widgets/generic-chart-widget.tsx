@@ -618,6 +618,13 @@ export function GenericChartWidget({
             .includes(normalizedQuery);
         })
       : [];
+  const directTicker =
+    picker?.kind === "search" && isProbablyTicker(pickerQuery)
+      ? pickerQuery.trim().toUpperCase()
+      : "";
+  const hasDirectTickerResult = searchResults.some(
+    (result) => result.symbol.toUpperCase() === directTicker,
+  );
 
   return (
     <div
@@ -679,35 +686,41 @@ export function GenericChartWidget({
             />
           </div>
           <div className="generic-chart__picker-list">
-            {picker.kind === "options"
-              ? filteredOptions.map((option) => (
-                  <button
-                    key={option.moniker}
-                    onClick={() => addEntry(option)}
-                    type="button"
-                  >
-                    <span>{option.label}</span>
-                    <code>{option.moniker}</code>
-                  </button>
-                ))
-              : searchResults.map((result) => (
-                  <button
-                    key={`${result.kind}-${result.symbol}`}
-                    onClick={() => addEntry(searchResultToEntry(result))}
-                    type="button"
-                  >
-                    <span>{result.symbol}</span>
-                    <code>{result.label}</code>
-                  </button>
-                ))}
+            {picker.kind === "options" &&
+              filteredOptions.map((option) => (
+                <button
+                  key={option.moniker}
+                  onClick={() => addEntry(option)}
+                  type="button"
+                >
+                  <span>{option.label}</span>
+                  <code>{option.moniker}</code>
+                </button>
+              ))}
+            {picker.kind === "search" && directTicker && !hasDirectTickerResult && (
+              <button onClick={submitSearch} type="button">
+                <span>{directTicker}</span>
+                <code>{`equity.prices/${directTicker}`}</code>
+              </button>
+            )}
+            {picker.kind === "search" &&
+              searchResults.map((result) => (
+                <button
+                  key={`${result.kind}-${result.symbol}`}
+                  onClick={() => addEntry(searchResultToEntry(result))}
+                  type="button"
+                >
+                  <span>{result.symbol}</span>
+                  <code>{result.label}</code>
+                </button>
+              ))}
             {picker.kind === "search" &&
               pickerQuery.trim() &&
-              searchResults.length === 0 &&
-              isProbablyTicker(pickerQuery) && (
-                <button onClick={submitSearch} type="button">
-                  <span>{pickerQuery.trim().toUpperCase()}</span>
-                  <code>{`equity.prices/${pickerQuery.trim().toUpperCase()}`}</code>
-                </button>
+              !directTicker &&
+              searchResults.length === 0 && (
+                <div className="generic-chart__picker-empty">
+                  No equity matches
+                </div>
               )}
           </div>
         </div>

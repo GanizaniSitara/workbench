@@ -1,14 +1,10 @@
-# Workbench Service Topology
+# Workbench Service Topology Template
 
-Last checked: 2026-05-03.
-
-This document is the local source of truth for what runs where while the
-Workbench, Open Moniker, and data-router contracts are still changing.
+Copy this file to `docs/service-topology.md` for local/operator notes. The
+local file is ignored because it can contain machine names, LAN addresses, and
+one-off service state.
 
 ## Current Development Topology
-
-Keep the fast-change control plane on the Windows development machine. Use the
-Mac/infrastructure host for heavier provider and cache services.
 
 ```text
 Browser / Workbench UX
@@ -36,7 +32,7 @@ Notebook:
   Jupyter -> http://localhost:8888
 ```
 
-## Observed Hosts
+## Host Inventory
 
 | Host | Role | Observed services | Current Workbench use |
 | --- | --- | --- | --- |
@@ -44,18 +40,15 @@ Notebook:
 | `<mac-infra-host>` | Mac / infrastructure host | OpenBB `6900`, QuestDB `9007`, HTTP/Knative-style app on `80`, nginx/auth surface on `8080`, SSH `22` | Provider/cache upstreams |
 | `<legacy-k3s-host>` | VMware/Ubuntu K3s-era host | Moniker Service on `80`, Kubernetes API `6443`, SSH `22` | Legacy/parallel service, not the active Workbench resolver |
 
-Keep concrete LAN addresses in the local `.env.local` or operator notes, not in
-repo documentation.
-
 ## Respawn Status
 
-OpenBB and QuestDB/FRED cache are not naked processes. They were deployed from
-this Windows workstation onto the Mac OrbStack/KEDA Kubernetes environment.
-The operational source is outside the Workbench repo:
+OpenBB and QuestDB/FRED cache were deployed from the Windows workstation onto
+the Mac OrbStack/KEDA Kubernetes environment. Operational manifests live outside
+this repo:
 
 ```text
-C:\Users\admin\vm-scripts\k3s-manifests\openbb\
-C:\Users\admin\vm-scripts\k3s-manifests\fred-cache\
+<operator-scripts-root>\k3s-manifests\openbb\
+<operator-scripts-root>\k3s-manifests\fred-cache\
 ```
 
 Relevant task records:
@@ -87,11 +80,7 @@ kubectl logs -f deployment/fred-fetcher -n fred-cache
 kubectl scale deployment/fred-fetcher -n fred-cache --replicas=0
 ```
 
-From the Windows machine, SSH to the Mac infrastructure host currently rejects
-the available credentials, so live pod/process inspection still needs to be done
-from the Mac or from a shell with the Mac OrbStack kubeconfig.
-
-The active `.env.local` pattern should be:
+## Local Environment Pattern
 
 ```env
 DATA_ROUTER_URL=http://localhost:4100
@@ -109,7 +98,7 @@ For now:
   Windows for fast iteration.
 - OpenBB and QuestDB stay on the Mac/infrastructure host because they are
   heavier provider/cache services and are not changing as quickly.
-- The VMware/K3s Moniker service is not the active route-plan authority for
+- The legacy K3s Moniker service is not the active route-plan authority for
   Workbench unless `MONIKER_RESOLVER_URL` is deliberately pointed at it.
 
 Later, when the route-plan and data-query contracts stabilize, move the
@@ -126,8 +115,6 @@ are explicit enough to run it safely in Kubernetes.
 
 ## Health Checks
 
-Use these checks when the app looks confused:
-
 ```text
 GET http://localhost:4000/ready
 GET http://localhost:4100/ready
@@ -141,16 +128,3 @@ Route-plan source check:
 ```text
 GET http://localhost:4100/api/data/route-plan?moniker=reference.rates%2FSONIA&shape=snapshot
 ```
-
-For current core datasets the response should say:
-
-```json
-{
-  "mode": "moniker-service",
-  "routingMode": "moniker-service",
-  "resolverUrl": "http://localhost:8060"
-}
-```
-
-If it says `moniker-service-fallback`, Workbench asked Open Moniker first but
-fell back to local route-plan stubs.

@@ -41,6 +41,7 @@ yarn-error.log*
 .local-memory/
 .cache/
 notebooks/.ipynb_checkpoints/
+docs/service-topology.md
 
 # runtime data (SQLite databases, etc.)
 /data/*.db

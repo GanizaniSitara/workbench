@@ -11,9 +11,9 @@ Plain React + standalone API scaffold for **WBN-020**: an OpenBB-Workspace-style
 
 The workspace UI remains in the frontend. Market, news, and chat endpoints now live in a separate API service under `src/server`.
 
-For the current local/Mac split, keep `docs/service-topology.md` as the source
-of truth. It records the active Windows dev services, the Mac provider/cache
-services, and the legacy VMware/K3s host.
+For the current local/Mac split, copy `docs/service-topology.example.md` to
+`docs/service-topology.md` and keep local host/IP details there. The local
+topology file is ignored so machine-specific addresses do not get committed.
 
 ## Data Plane Direction
 
@@ -45,7 +45,8 @@ Open Moniker is the routing brain: it decides which source or ordered source lis
 
 When `MONIKER_RESOLVER_URL` is set, `src/server/data-router/route-plan-resolver.ts` calls `GET <url>/route-plan?moniker=<path>&shape=<shape>`. Set `DATA_ROUTING_MODE=direct` or `MONIKER_ROUTING_MODE=direct` only when forcing local route-plan stubs. If Open Moniker has no plan for a current dev moniker, local stubs remain as a development fallback.
 
-Detailed service ownership and host/port inventory lives in `docs/service-topology.md`.
+Detailed service ownership and host/port inventory should live in the ignored
+local `docs/service-topology.md`, seeded from `docs/service-topology.example.md`.
 
 ## Getting started
 

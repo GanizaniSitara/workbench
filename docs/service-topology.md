@@ -44,6 +44,24 @@ Notebook:
 | `192.168.1.79` | Mac / infrastructure host | OpenBB `6900`, QuestDB `9007`, HTTP/Knative-style app on `80`, nginx/auth surface on `8080`, SSH `22` | Provider/cache upstreams |
 | `192.168.183.131` | VMware/Ubuntu K3s-era host | Moniker Service on `80`, Kubernetes API `6443`, SSH `22` | Legacy/parallel service, not the active Workbench resolver |
 
+## Respawn Status
+
+The Mac services are live but their process manager is not yet documented in
+this repo. From the Windows machine, SSH to `192.168.1.79` currently rejects the
+available credentials, so we cannot confirm whether OpenBB and QuestDB are
+Docker containers, OrbStack/Kubernetes workloads, launchd services, or manually
+started processes.
+
+Treat these services as operationally loose until a Mac-side runbook or manifest
+is added. The missing runbook should capture:
+
+- exact service owner and repo, if any
+- startup command or manifest path
+- persistent data path for QuestDB
+- health check
+- stop/restart command
+- whether the service should survive Mac reboot
+
 The active `.env.local` pattern should be:
 
 ```env

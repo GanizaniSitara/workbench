@@ -46,21 +46,47 @@ Notebook:
 
 ## Respawn Status
 
-The Mac services are live but their process manager is not yet documented in
-this repo. From the Windows machine, SSH to `192.168.1.79` currently rejects the
-available credentials, so we cannot confirm whether OpenBB and QuestDB are
-Docker containers, OrbStack/Kubernetes workloads, launchd services, or manually
-started processes.
+OpenBB and QuestDB/FRED cache are not naked processes. They were deployed from
+this Windows workstation onto the Mac OrbStack/KEDA Kubernetes environment.
+The operational source is outside the Workbench repo:
 
-Treat these services as operationally loose until a Mac-side runbook or manifest
-is added. The missing runbook should capture:
+```text
+C:\Users\admin\vm-scripts\k3s-manifests\openbb\
+C:\Users\admin\vm-scripts\k3s-manifests\fred-cache\
+```
 
-- exact service owner and repo, if any
-- startup command or manifest path
-- persistent data path for QuestDB
-- health check
-- stop/restart command
-- whether the service should survive Mac reboot
+Relevant task records:
+
+- `WBN-011` - Deploy OpenBB Platform data provider on Mac OrbStack k8s
+- `WBN-012` - FRED time-series cache on Mac k8s (QuestDB + KEDA fetcher)
+
+OpenBB respawn/update path, run on the Mac with `kubectl` targeting OrbStack:
+
+```bash
+cd k3s-manifests/openbb
+docker build -t openbb-platform:latest .
+kubectl apply -f .
+kubectl rollout restart deployment/openbb-platform -n openbb
+kubectl get pods -n openbb
+kubectl get svc openbb-platform -n openbb
+```
+
+QuestDB/FRED cache respawn/update path, run on the Mac with `kubectl` targeting
+OrbStack:
+
+```bash
+cd k3s-manifests/fred-cache
+docker build -t fred-fetcher:latest ./30-fetcher-image/
+kubectl apply -f .
+kubectl wait --for=condition=Ready pod -l app=questdb -n fred-cache --timeout=120s
+kubectl scale deployment/fred-fetcher -n fred-cache --replicas=1
+kubectl logs -f deployment/fred-fetcher -n fred-cache
+kubectl scale deployment/fred-fetcher -n fred-cache --replicas=0
+```
+
+From the Windows machine, SSH to `192.168.1.79` currently rejects the available
+credentials, so live pod/process inspection still needs to be done from the Mac
+or from a shell with the Mac OrbStack kubeconfig.
 
 The active `.env.local` pattern should be:
 

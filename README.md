@@ -11,37 +11,41 @@ Plain React + standalone API scaffold for **WBN-020**: an OpenBB-Workspace-style
 
 The workspace UI remains in the frontend. Market, news, and chat endpoints now live in a separate API service under `src/server`.
 
+For the current local/Mac split, keep `docs/service-topology.md` as the source
+of truth. It records the active Windows dev services, the Mac provider/cache
+services, and the legacy VMware/K3s host.
+
 ## Data Plane Direction
 
 The UI should hit one data-facing service for real datasets. Widgets should pass monikers and expected shapes, not provider names or cache details.
 
-Default local/direct flow:
+Current local development flow:
 
 ```text
 React widgets
-  -> Workbench Data API
-  -> local route-plan stubs
-  -> generic data router
-  -> QuestDB / OpenBB / Refinitiv / direct DB adapters
-  -> normalized dataset
-```
-
-Enterprise routing flow:
-
-```text
-React widgets
-  -> Workbench Data API
+  -> Workbench API
+  -> standalone Data Router
   -> Open Moniker route plan
-  -> generic data router
-  -> QuestDB / OpenBB / Refinitiv / direct DB adapters
+  -> QuestDB / OpenBB / GDELT / provider adapters
   -> normalized dataset
 ```
 
-Open Moniker is the optional routing brain: in enterprise mode it decides which source or ordered source list backs a moniker. The data router is intentionally dumb and horizontally scalable: it executes route plans, calls adapters with the route `ref` payload, normalizes responses, and returns datasets.
+Fallback development flow:
 
-By default, `src/server/data-router/route-plan-resolver.ts` uses local/direct route-plan stubs for current datasets, even if `MONIKER_RESOLVER_URL` is present. To use Open Moniker route plans, set `DATA_ROUTING_MODE=enterprise` or `MONIKER_ROUTING_MODE=enterprise`; the resolver then calls `GET <url>/route-plan?moniker=<path>&shape=<shape>`. If the service is unavailable for a current dev moniker, local stubs remain as a development fallback.
+```text
+React widgets
+  -> Workbench API
+  -> standalone Data Router
+  -> local route-plan stubs
+  -> QuestDB / OpenBB / GDELT / provider adapters
+  -> normalized dataset
+```
 
-Detailed data-plane planning notes are kept outside this public repository.
+Open Moniker is the routing brain: it decides which source or ordered source list backs a moniker. The data router is intentionally dumb and horizontally scalable: it executes route plans, calls adapters with the route `ref` payload, normalizes responses, and returns datasets.
+
+When `MONIKER_RESOLVER_URL` is set, `src/server/data-router/route-plan-resolver.ts` calls `GET <url>/route-plan?moniker=<path>&shape=<shape>`. Set `DATA_ROUTING_MODE=direct` or `MONIKER_ROUTING_MODE=direct` only when forcing local route-plan stubs. If Open Moniker has no plan for a current dev moniker, local stubs remain as a development fallback.
+
+Detailed service ownership and host/port inventory lives in `docs/service-topology.md`.
 
 ## Getting started
 
@@ -59,7 +63,7 @@ npm run dev
 
 - App: [http://127.0.0.1:3000](http://127.0.0.1:3000)
 
-The Vite dev server proxies `/api/*` and `/health` to the local backend on port `4000`, so the app is used from port `3000`.
+The Vite dev server proxies `/api/*` and `/health` to the local backend on port `4000`, so the app is used from port `3000`. `npm run dev` also starts the standalone data-router service on port `4100`.
 
 For a new environment, start from `.env.example` and set `OPENBB_BASE_URL` to an OpenBB-compatible API. The current market widgets require:
 
@@ -97,12 +101,14 @@ Set `VITE_MEMORY_API_BASE_URL` and `VITE_MEMORY_USER_ID` only if the chat widget
 The API service uses:
 
 - `PORT` - API port (default `4000`)
+- `DATA_ROUTER_PORT` - standalone data-router port (default `4100`)
+- `DATA_ROUTER_URL` - data-router URL used by the Workbench API; use `embedded` only for local fallback
 - `FRONTEND_ORIGIN` - optional comma-separated CORS allowlist
 - `OPENBB_BASE_URL` - OpenBB-compatible API base URL for market data and preferred news
 - `QUESTDB_URL` - optional QuestDB HTTP endpoint for cache-first market data
-- `DATA_ROUTING_MODE` - optional data routing mode; default `direct`, set `enterprise` to use Open Moniker route plans
-- `MONIKER_ROUTING_MODE` - optional alias for `DATA_ROUTING_MODE`; values `enterprise`, `moniker`, `moniker-service`, and `open-moniker` enable Open Moniker route plans
-- `MONIKER_RESOLVER_URL` - optional Open Moniker route-plan resolver URL used only when enterprise routing mode is enabled
+- `DATA_ROUTING_MODE` - optional data routing mode; set `direct` to force local stubs
+- `MONIKER_ROUTING_MODE` - optional alias for `DATA_ROUTING_MODE`
+- `MONIKER_RESOLVER_URL` - optional Open Moniker route-plan resolver URL; when set, route plans use Open Moniker first
 - `OLLAMA_BASE_URL` - optional Ollama endpoint for `/api/chat`
 - `OLLAMA_MODEL` - optional Ollama model name for `/api/chat`
 

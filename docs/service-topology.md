@@ -12,28 +12,28 @@ Mac/infrastructure host for heavier provider and cache services.
 
 ```text
 Browser / Workbench UX
-  http://127.0.0.1:3000
+  http://localhost:3000
         |
         v
 Workbench API
-  http://127.0.0.1:4000
+  http://localhost:4000
         |
         | proxies /api/data/*
         v
 Standalone Data Router
-  http://127.0.0.1:4100
+  http://localhost:4100
         |
         | route plans
         v
 Open Moniker dev resolver
-  http://127.0.0.1:8060
+  http://localhost:8060
 
 Data Router provider/cache calls:
-  OpenBB  -> http://192.168.1.79:6900
-  QuestDB -> http://192.168.1.79:9007
+  OpenBB  -> http://<mac-infra-host>:6900
+  QuestDB -> http://<mac-infra-host>:9007
 
 Notebook:
-  Jupyter -> http://127.0.0.1:8888
+  Jupyter -> http://localhost:8888
 ```
 
 ## Observed Hosts
@@ -41,8 +41,11 @@ Notebook:
 | Host | Role | Observed services | Current Workbench use |
 | --- | --- | --- | --- |
 | Windows dev machine | Fast-change app/control plane | Workbench UX `3000`, Workbench API `4000`, Data Router `4100`, Open Moniker dev `8060`, Jupyter `8888` | Primary development runtime |
-| `192.168.1.79` | Mac / infrastructure host | OpenBB `6900`, QuestDB `9007`, HTTP/Knative-style app on `80`, nginx/auth surface on `8080`, SSH `22` | Provider/cache upstreams |
-| `192.168.183.131` | VMware/Ubuntu K3s-era host | Moniker Service on `80`, Kubernetes API `6443`, SSH `22` | Legacy/parallel service, not the active Workbench resolver |
+| `<mac-infra-host>` | Mac / infrastructure host | OpenBB `6900`, QuestDB `9007`, HTTP/Knative-style app on `80`, nginx/auth surface on `8080`, SSH `22` | Provider/cache upstreams |
+| `<legacy-k3s-host>` | VMware/Ubuntu K3s-era host | Moniker Service on `80`, Kubernetes API `6443`, SSH `22` | Legacy/parallel service, not the active Workbench resolver |
+
+Keep concrete LAN addresses in the local `.env.local` or operator notes, not in
+repo documentation.
 
 ## Respawn Status
 
@@ -84,18 +87,18 @@ kubectl logs -f deployment/fred-fetcher -n fred-cache
 kubectl scale deployment/fred-fetcher -n fred-cache --replicas=0
 ```
 
-From the Windows machine, SSH to `192.168.1.79` currently rejects the available
-credentials, so live pod/process inspection still needs to be done from the Mac
-or from a shell with the Mac OrbStack kubeconfig.
+From the Windows machine, SSH to the Mac infrastructure host currently rejects
+the available credentials, so live pod/process inspection still needs to be done
+from the Mac or from a shell with the Mac OrbStack kubeconfig.
 
 The active `.env.local` pattern should be:
 
 ```env
-DATA_ROUTER_URL=http://127.0.0.1:4100
-MONIKER_RESOLVER_URL=http://127.0.0.1:8060
-OPENBB_BASE_URL=http://192.168.1.79:6900
-QUESTDB_URL=http://192.168.1.79:9007
-JUPYTER_GATEWAY_URL=http://127.0.0.1:8888
+DATA_ROUTER_URL=http://localhost:4100
+MONIKER_RESOLVER_URL=http://localhost:8060
+OPENBB_BASE_URL=http://<mac-infra-host>:6900
+QUESTDB_URL=http://<mac-infra-host>:9007
+JUPYTER_GATEWAY_URL=http://localhost:8888
 ```
 
 ## Ownership Rule
@@ -126,17 +129,17 @@ are explicit enough to run it safely in Kubernetes.
 Use these checks when the app looks confused:
 
 ```text
-GET http://127.0.0.1:4000/ready
-GET http://127.0.0.1:4100/ready
-GET http://127.0.0.1:8060/health
-GET http://192.168.1.79:6900
-GET http://192.168.1.79:9007/exec?query=select%201
+GET http://localhost:4000/ready
+GET http://localhost:4100/ready
+GET http://localhost:8060/health
+GET http://<mac-infra-host>:6900
+GET http://<mac-infra-host>:9007/exec?query=select%201
 ```
 
 Route-plan source check:
 
 ```text
-GET http://127.0.0.1:4100/api/data/route-plan?moniker=reference.rates%2FSONIA&shape=snapshot
+GET http://localhost:4100/api/data/route-plan?moniker=reference.rates%2FSONIA&shape=snapshot
 ```
 
 For current core datasets the response should say:
@@ -145,7 +148,7 @@ For current core datasets the response should say:
 {
   "mode": "moniker-service",
   "routingMode": "moniker-service",
-  "resolverUrl": "http://127.0.0.1:8060"
+  "resolverUrl": "http://localhost:8060"
 }
 ```
 

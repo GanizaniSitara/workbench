@@ -14,6 +14,7 @@ The workspace UI remains in the frontend. Market, news, and chat endpoints now l
 For the current local/Mac split, copy `docs/service-topology.example.md` to
 `docs/service-topology.md` and keep local host/IP details there. The local
 topology file is ignored so machine-specific addresses do not get committed.
+For a concise logical/physical map, see `docs/logical-physical-wiring.md`.
 
 ## Data Plane Direction
 
@@ -47,6 +48,7 @@ When `MONIKER_RESOLVER_URL` is set, `src/server/data-router/route-plan-resolver.
 
 Detailed service ownership and host/port inventory should live in the ignored
 local `docs/service-topology.md`, seeded from `docs/service-topology.example.md`.
+The tracked `docs/logical-physical-wiring.md` summarizes the generic wiring.
 
 ## Getting started
 

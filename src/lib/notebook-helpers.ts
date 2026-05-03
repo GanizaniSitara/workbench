@@ -17,6 +17,8 @@ export interface SnapshotItem {
   date: string | null;
 }
 
+const REFERENCE_RATE_IDS = ["SONIA", "SOFR", "ESTR", "EFFR"] as const;
+
 // wbn — data-router helpers injected into notebook code cells.
 // Each method calls the workbench /api/data/query endpoint via the existing
 // data router, so credentials and provider config stay server-side.
@@ -54,8 +56,16 @@ export const wbn = {
     return this.query<YieldPoint>("fixed.income.govies");
   },
 
-  // Reference rates snapshot (SONIA, SOFR, ESTR, EFFR), e.g. wbn.rates()
+  // Single executable reference-rate moniker, e.g. wbn.rate("SONIA")
+  async rate(id = "SONIA"): Promise<SnapshotItem[]> {
+    return this.query<SnapshotItem>(`reference.rates/${id.toUpperCase()}`);
+  },
+
+  // Reference rates snapshot, expanded through child monikers.
   async rates(): Promise<SnapshotItem[]> {
-    return this.query<SnapshotItem>("reference.rates");
+    const results = await Promise.all(
+      REFERENCE_RATE_IDS.map((id) => this.rate(id)),
+    );
+    return results.flat();
   },
 };

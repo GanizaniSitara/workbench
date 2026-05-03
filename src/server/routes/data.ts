@@ -235,6 +235,13 @@ const UK_EQUITY_CATALOG: SearchResult[] = [
   { symbol: "BT-A.L", label: "BT Group PLC", kind: "equity" },
 ];
 
+const REFERENCE_RATE_CATALOG: SearchResult[] = [
+  { symbol: "SONIA", label: "SONIA", kind: "macro" },
+  { symbol: "SOFR", label: "SOFR", kind: "macro" },
+  { symbol: "ESTR", label: "ESTR", kind: "macro" },
+  { symbol: "EFFR", label: "EFFR", kind: "macro" },
+];
+
 function catalogLeaf(
   prefix: string,
   item: SearchResult,
@@ -339,6 +346,20 @@ const LOCAL_MONIKER_TREE: MonikerTreeNode[] = [
     ),
   }),
   catalogRoot({
+    path: "reference.rates",
+    name: "Reference Rates",
+    description: "Reference rate families",
+    domain: "rates",
+    vendor: "fred",
+    children: REFERENCE_RATE_CATALOG.map((item) =>
+      catalogLeaf("reference.rates", item, {
+        domain: "rates",
+        sourceType: "openbb",
+        vendor: "fred",
+      }),
+    ),
+  }),
+  catalogRoot({
     path: "news",
     name: "News",
     description: "News datasets",
@@ -377,6 +398,7 @@ const ROOT_ORDER = new Map(
     "corporate.bonds",
     "macro.indicators",
     "equity.prices",
+    "reference.rates",
     "news",
   ].map((path, index) => [path, index]),
 );

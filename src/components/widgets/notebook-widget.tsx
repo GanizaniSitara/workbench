@@ -30,7 +30,7 @@ function defaultCells(): Cell[] {
       id: crypto.randomUUID(),
       type: "markdown",
       source:
-        "## Notebook\n\nFetch workbench data with the Python `wbn` helpers:\n\n- `wbn.fred(symbol, range=\"1y\")` - FRED macro time series\n- `wbn.equity(symbol, range=\"1y\")` - equity price history\n- `wbn.curve()` - US Treasury yield curve\n- `wbn.rates()` - reference rates (SONIA, SOFR, ESTR, EFFR)\n- `wbn.snapshot()` - latest macro indicator values\n\nVariables persist across code cells while the kernel is running.",
+        "## Notebook\n\nFetch workbench data with the Python `wbn` helpers:\n\n- `wbn.fred(symbol, range=\"1y\")` - FRED macro time series\n- `wbn.equity(symbol, range=\"1y\")` - equity price history\n- `wbn.curve()` - US Treasury yield curve\n- `wbn.rate(\"SONIA\")` - concrete reference-rate moniker\n- `wbn.rates()` - SONIA, SOFR, ESTR, and EFFR via child monikers\n- `wbn.snapshot()` - latest macro indicator values\n\nVariables persist across code cells while the kernel is running.",
     },
     {
       id: crypto.randomUUID(),

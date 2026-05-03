@@ -53,15 +53,19 @@ except Exception:
 
 class _Wbn:
     _BASE = "http://127.0.0.1:4000"
+    _REFERENCE_RATE_IDS = ("SONIA", "SOFR", "ESTR", "EFFR")
 
-    def query(self, moniker, params=None):
+    def _rows(self, moniker, params=None):
         response = requests.post(
             f"{self._BASE}/api/data/query",
             json={"moniker": moniker, "params": params or {}},
             timeout=20,
         )
         response.raise_for_status()
-        return self._frame(response.json().get("results", []))
+        return response.json().get("results", [])
+
+    def query(self, moniker, params=None):
+        return self._frame(self._rows(moniker, params))
 
     def _query(self, moniker, params=None):
         return self.query(moniker, params)
@@ -84,8 +88,14 @@ class _Wbn:
     def curve(self):
         return self.query("fixed.income.govies")
 
+    def rate(self, rate="SONIA"):
+        return self.query(f"reference.rates/{str(rate).upper()}")
+
     def rates(self):
-        return self.query("reference.rates")
+        rows = []
+        for rate in self._REFERENCE_RATE_IDS:
+            rows.extend(self._rows(f"reference.rates/{rate}"))
+        return self._frame(rows)
 
     def snapshot(self):
         return self.query("macro.indicators")

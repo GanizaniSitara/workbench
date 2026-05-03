@@ -1513,6 +1513,7 @@ code {
 
 /* ─── Market overview widgets ───────────────────────────────────────── */
 .macro-strip,
+.reference-rates,
 .macro-timeseries,
 .generic-chart,
 .yield-curve,
@@ -1522,6 +1523,7 @@ code {
 }
 
 .macro-strip--state,
+.reference-rates--state,
 .macro-timeseries__state,
 .generic-chart__state,
 .yield-curve--state,
@@ -1579,6 +1581,66 @@ code {
   gap: 0.35rem;
   justify-content: space-between;
   margin-top: 0.2rem;
+}
+
+.reference-rates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  overflow: hidden;
+}
+
+.reference-rates__toolbar {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.4rem;
+  justify-content: space-between;
+  min-height: 1.35rem;
+}
+
+.reference-rates__selector {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.68rem;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.reference-rates__selector select {
+  background: var(--panel-background);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.68rem;
+  height: 1.35rem;
+  min-width: 5rem;
+}
+
+.reference-rates__moniker {
+  color: var(--muted);
+  font-size: 0.62rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reference-rates__grid {
+  flex: 1;
+  min-height: 0;
+}
+
+.reference-rates__card {
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.reference-rates__card[data-active="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .macro-timeseries {

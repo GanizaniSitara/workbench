@@ -92,11 +92,11 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
   {
     type: "reference-rates",
     title: "Reference Rates",
-    description: "Live strip of SONIA, SOFR, ESTR, and EFFR reference rates.",
+    description: "Selectable SONIA, SOFR, ESTR, and EFFR reference-rate cards.",
     category: "Markets",
     idPrefix: "ref-rates",
     singleton: true,
-    defaultMoniker: "reference.rates",
+    defaultMoniker: "reference.rates/SONIA",
     supportedDataKinds: ["rates"],
     defaultLayout: { w: 12, h: 3, minW: 6, minH: 2 },
   },

@@ -104,7 +104,14 @@ function renderWidget(
     case "placeholder-news":
       return <NewsWidget moniker={moniker} />;
     case "reference-rates":
-      return <ReferenceRatesWidget moniker={moniker} />;
+      return (
+        <ReferenceRatesWidget
+          moniker={moniker}
+          onMonikerChange={(nextMoniker) =>
+            updateWidgetConfig(widget.id, { moniker: nextMoniker })
+          }
+        />
+      );
     case "equity-chart":
       return (
         <EquityChartWidget

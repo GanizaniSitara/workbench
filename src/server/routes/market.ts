@@ -3,6 +3,13 @@ import { DataQueryError, queryData } from "../data-router/query-service";
 
 export const marketRouter = Router();
 
+const REFERENCE_RATE_MONIKERS = [
+  "reference.rates/SONIA",
+  "reference.rates/SOFR",
+  "reference.rates/ESTR",
+  "reference.rates/EFFR",
+] as const;
+
 marketRouter.get("/macro", async (req, res) => {
   const domain =
     typeof req.query.moniker === "string"
@@ -85,11 +92,16 @@ marketRouter.get("/yields", async (req, res) => {
 
 marketRouter.get("/reference-rates", async (_req, res) => {
   try {
-    const result = await queryData({
-      moniker: "reference.rates",
-      shape: "snapshot",
+    const results = await Promise.all(
+      REFERENCE_RATE_MONIKERS.map((moniker) =>
+        queryData({ moniker, shape: "snapshot" }),
+      ),
+    );
+    return res.json({
+      results: results.flatMap((result) =>
+        result.shape === "snapshot" ? result.results : [],
+      ),
     });
-    return res.json({ results: result.results });
   } catch (error) {
     if (error instanceof DataQueryError) {
       return res.status(error.status).json({ error: error.message });

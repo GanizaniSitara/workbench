@@ -25,6 +25,7 @@ import { PositionsTableWidget } from "@/components/widgets/positions-table-widge
 import { PnlSummaryWidget } from "@/components/widgets/pnl-summary-widget";
 import { ExposureCardWidget } from "@/components/widgets/exposure-card-widget";
 import { PositionDetailWidget } from "@/components/widgets/position-detail-widget";
+import { HybridBrinsonWidget } from "@/components/widgets/hybrid-brinson-widget";
 import { CatalogWidget } from "@/components/widgets/catalog-widget";
 import type { WidgetDefinition } from "@/lib/layout";
 import { getWidgetDefaultMoniker } from "@/lib/widget-registry";
@@ -178,6 +179,8 @@ function renderWidget(
           }
         />
       );
+    case "hybrid-brinson":
+      return <HybridBrinsonWidget moniker={moniker} />;
     default:
       return <PlaceholderWidget type={widget.type} />;
   }

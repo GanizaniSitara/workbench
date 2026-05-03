@@ -183,6 +183,26 @@ const NAV_TREE: NavNode[] = [
   },
   {
     kind: "group",
+    id: "apis",
+    label: "APIs",
+    children: [
+      {
+        kind: "group",
+        id: "apis-attribution",
+        label: "Attribution",
+        children: [
+          {
+            kind: "leaf",
+            id: "apis-brinson",
+            label: "Hybrid Brinson",
+            dataKind: "portfolio",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    kind: "group",
     id: "research",
     label: "Research",
     children: [

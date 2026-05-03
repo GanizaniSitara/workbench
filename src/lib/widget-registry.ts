@@ -239,6 +239,17 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     supportedDataKinds: ["portfolio"],
     defaultLayout: { w: 12, h: 8, minW: 5, minH: 4 },
   },
+  {
+    type: "hybrid-brinson",
+    title: "Hybrid Brinson",
+    description:
+      "Fixed-income performance attribution: yield, parallel rates, curve, spread allocation, selection.",
+    category: "Portfolio",
+    idPrefix: "brinson",
+    defaultMoniker: "fixed.income/govies/sovereign",
+    supportedDataKinds: ["portfolio", "rates"],
+    defaultLayout: { w: 8, h: 14, minW: 5, minH: 8 },
+  },
 ];
 
 export const WIDGET_CATEGORIES: WidgetCategory[] = [

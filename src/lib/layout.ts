@@ -19,7 +19,8 @@ export type WidgetType =
   | "positions-table"
   | "pnl-summary"
   | "exposure-card"
-  | "position-detail";
+  | "position-detail"
+  | "hybrid-brinson";
 
 export interface WidgetDefinition {
   id: string;
@@ -54,6 +55,7 @@ export interface WorkspaceLayout {
 
 export const CATALOG_SCREEN_ID = "screen-catalog";
 export const CHARTS_SCREEN_ID = "screen-charts";
+export const APIS_SCREEN_ID = "screen-apis";
 
 const STORAGE_KEY = "workbench-layout-v1";
 const LAYOUT_VERSION = 11;
@@ -150,6 +152,19 @@ const CHARTS_GRID: LayoutItem[] = [
   { i: "chart-main", x: 0, y: 0, w: 12, h: 14, minW: 6, minH: 8 },
 ];
 
+const APIS_WIDGETS: WidgetDefinition[] = [
+  {
+    id: "brinson-1",
+    type: "hybrid-brinson",
+    title: "Hybrid Brinson",
+    config: { moniker: "fixed.income/govies/sovereign" },
+  },
+];
+
+const APIS_GRID: LayoutItem[] = [
+  { i: "brinson-1", x: 0, y: 0, w: 12, h: 18, minW: 6, minH: 8 },
+];
+
 function buildCatalogScreen(): Screen {
   return {
     id: CATALOG_SCREEN_ID,
@@ -165,6 +180,15 @@ function buildChartsScreen(): Screen {
     name: "Charts",
     widgets: structuredClone(CHARTS_WIDGETS),
     grid: structuredClone(CHARTS_GRID),
+  };
+}
+
+function buildApisScreen(): Screen {
+  return {
+    id: APIS_SCREEN_ID,
+    name: "APIs",
+    widgets: structuredClone(APIS_WIDGETS),
+    grid: structuredClone(APIS_GRID),
   };
 }
 
@@ -324,6 +348,15 @@ function withChartsScreen(screens: Screen[]): Screen[] {
   return [...withoutCharts, buildChartsScreen()];
 }
 
+function withApisScreen(screens: Screen[]): Screen[] {
+  const withoutApis = screens.filter(
+    (screen) =>
+      screen.id !== APIS_SCREEN_ID &&
+      screen.name.trim().toLowerCase() !== "apis",
+  );
+  return [...withoutApis, buildApisScreen()];
+}
+
 function withPortfolioScreen(screens: Screen[]): Screen[] {
   const withoutPortfolio = screens.filter(
     (screen) =>
@@ -336,8 +369,10 @@ function withPortfolioScreen(screens: Screen[]): Screen[] {
 }
 
 function withDefaultScreens(screens: Screen[]): Screen[] {
-  return withChartsScreen(
-    withCatalogScreen(withPortfolioScreen(withJupyterScreen(screens))),
+  return withApisScreen(
+    withChartsScreen(
+      withCatalogScreen(withPortfolioScreen(withJupyterScreen(screens))),
+    ),
   ).map((screen) =>
     normalizeHomeGdeltLayout(normalizeScreenGrid(normalizeScreenName(screen))),
   );
@@ -375,6 +410,7 @@ export function buildDefaultLayout(userId: string): WorkspaceLayout {
       },
       buildCatalogScreen(),
       buildChartsScreen(),
+      buildApisScreen(),
     ],
   };
 }

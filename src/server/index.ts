@@ -1,6 +1,7 @@
 import "./env";
 import cors from "cors";
 import express from "express";
+import { analyticsRouter } from "./routes/analytics";
 import { chatRouter } from "./routes/chat";
 import { dataRouter } from "./routes/data";
 import { createDataProxyRouter } from "./routes/data-proxy";
@@ -95,6 +96,7 @@ app.get("/ready", async (_req, res) => {
   res.status(ready ? 200 : 503).json({ ready, services });
 });
 
+app.use("/api/analytics", analyticsRouter);
 app.use("/api/chat", chatRouter);
 app.use(
   "/api/data",

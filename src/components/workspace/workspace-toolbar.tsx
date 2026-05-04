@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { GlobalCommandInput } from "@/components/workspace/global-command-input";
 import { UserProfile } from "@/components/workspace/user-profile";
 import { WidgetCatalogDrawer } from "@/components/workspace/widget-catalog-drawer";
 
@@ -14,8 +15,13 @@ export function WorkspaceToolbar() {
 
   return (
     <>
-      <header className="workspace-toolbar" aria-label="Workspace toolbar">
+      <header
+        className="workspace-toolbar"
+        aria-label="Workspace toolbar"
+        tabIndex={-1}
+      >
         <span className="workspace-toolbar__brand">Workbench</span>
+        <GlobalCommandInput />
         <div className="workspace-toolbar__actions">
           <div className="workspace-toolbar__screens">
             {screens.map((screen) => (

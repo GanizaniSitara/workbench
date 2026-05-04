@@ -62,7 +62,8 @@ function previewColumns(rows: unknown[]): string[] {
 
 function formatPreviewValue(value: unknown): string {
   if (value === null || value === undefined) return "-";
-  if (typeof value === "number") return Number.isInteger(value) ? `${value}` : value.toFixed(4);
+  if (typeof value === "number")
+    return Number.isInteger(value) ? `${value}` : value.toFixed(4);
   if (typeof value === "string") return value;
   if (typeof value === "boolean") return value ? "true" : "false";
   return JSON.stringify(value);
@@ -70,19 +71,21 @@ function formatPreviewValue(value: unknown): string {
 
 export function JupyterLabWidget() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const releasedInitialFrameFocusRef = useRef(false);
   const [selectedMoniker, setSelectedMoniker] = useState("fixed.income.govies");
   const [sourceType, setSourceType] = useState<string | null>(null);
-  const [sendState, setSendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [sendState, setSendState] = useState<
+    "idle" | "sending" | "sent" | "error"
+  >("idle");
   const [status, setStatus] = useState("Bridge pending");
   const [showCode, setShowCode] = useState(false);
   const [previewRows, setPreviewRows] = useState<unknown[]>([]);
-  const [previewStatus, setPreviewStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [previewStatus, setPreviewStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
   const [previewError, setPreviewError] = useState("");
 
-  const code = useMemo(
-    () => generatedCell(selectedMoniker),
-    [selectedMoniker],
-  );
+  const code = useMemo(() => generatedCell(selectedMoniker), [selectedMoniker]);
 
   const selectMoniker = useCallback((selection: MonikerSelection) => {
     const path = selection.path.trim();
@@ -93,7 +96,11 @@ export function JupyterLabWidget() {
     setPreviewRows([]);
     setPreviewStatus("idle");
     setPreviewError("");
-    setStatus(selection.sourceType ? `${selection.sourceType} selected` : "Dataset selected");
+    setStatus(
+      selection.sourceType
+        ? `${selection.sourceType} selected`
+        : "Dataset selected",
+    );
   }, []);
 
   useEffect(() => {
@@ -104,13 +111,19 @@ export function JupyterLabWidget() {
 
     window.addEventListener("workbench:moniker-select", handleMonikerSelect);
     return () => {
-      window.removeEventListener("workbench:moniker-select", handleMonikerSelect);
+      window.removeEventListener(
+        "workbench:moniker-select",
+        handleMonikerSelect,
+      );
     };
   }, [selectMoniker]);
 
   useEffect(() => {
     function handleBridgeMessage(event: MessageEvent) {
-      if (!JUPYTER_LAB_URL || event.origin !== new URL(JUPYTER_LAB_URL).origin) {
+      if (
+        !JUPYTER_LAB_URL ||
+        event.origin !== new URL(JUPYTER_LAB_URL).origin
+      ) {
         return;
       }
 
@@ -188,7 +201,9 @@ export function JupyterLabWidget() {
     } catch (error) {
       setPreviewRows([]);
       setPreviewStatus("error");
-      setPreviewError(error instanceof Error ? error.message : "Preview unavailable");
+      setPreviewError(
+        error instanceof Error ? error.message : "Preview unavailable",
+      );
     }
   }
 
@@ -197,6 +212,20 @@ export function JupyterLabWidget() {
     setSendState("sent");
     setStatus("Cell copied");
   }
+
+  const releaseInitialFrameFocus = useCallback(() => {
+    if (releasedInitialFrameFocusRef.current) return;
+    releasedInitialFrameFocusRef.current = true;
+
+    window.requestAnimationFrame(() => {
+      const frame = iframeRef.current;
+      if (!frame || document.activeElement !== frame) return;
+      frame.blur();
+      document.querySelector<HTMLElement>(".workspace-toolbar")?.focus({
+        preventScroll: true,
+      });
+    });
+  }, []);
 
   if (!JUPYTER_LAB_URL) {
     return (
@@ -215,7 +244,9 @@ export function JupyterLabWidget() {
       >
         <header className="jupyter-lab-widget__header">
           <div>
-            <div className="jupyter-lab-widget__eyebrow">Workbench notebook</div>
+            <div className="jupyter-lab-widget__eyebrow">
+              Workbench notebook
+            </div>
             <div className="jupyter-lab-widget__title">Dataset query</div>
           </div>
           <span className="jupyter-lab-widget__pill">
@@ -236,9 +267,7 @@ export function JupyterLabWidget() {
           />
         </div>
 
-        <div className="jupyter-lab-widget__dropzone">
-          Drop moniker here
-        </div>
+        <div className="jupyter-lab-widget__dropzone">Drop moniker here</div>
 
         <div className="jupyter-lab-widget__actions">
           <button
@@ -281,10 +310,7 @@ export function JupyterLabWidget() {
           </button>
         </div>
 
-        <div
-          className="jupyter-lab-widget__preview"
-          data-state={previewStatus}
-        >
+        <div className="jupyter-lab-widget__preview" data-state={previewStatus}>
           <div className="jupyter-lab-widget__preview-head">
             <span>Preview</span>
             <strong>
@@ -298,7 +324,9 @@ export function JupyterLabWidget() {
             </strong>
           </div>
           {previewStatus === "error" ? (
-            <div className="jupyter-lab-widget__preview-state">{previewError}</div>
+            <div className="jupyter-lab-widget__preview-state">
+              {previewError}
+            </div>
           ) : previewRows.length > 0 ? (
             <div className="jupyter-lab-widget__preview-table-wrap">
               {previewColumns(previewRows).length > 0 ? (
@@ -315,7 +343,9 @@ export function JupyterLabWidget() {
                       <tr key={index}>
                         {previewColumns(previewRows).map((column) => (
                           <td key={column}>
-                            {formatPreviewValue(isRecord(row) ? row[column] : row)}
+                            {formatPreviewValue(
+                              isRecord(row) ? row[column] : row,
+                            )}
                           </td>
                         ))}
                       </tr>
@@ -330,21 +360,22 @@ export function JupyterLabWidget() {
             </div>
           ) : (
             <div className="jupyter-lab-widget__preview-state">
-              {previewStatus === "ready" ? "No rows returned" : "Run preview before sending"}
+              {previewStatus === "ready"
+                ? "No rows returned"
+                : "Run preview before sending"}
             </div>
           )}
         </div>
 
-        <div
-          className="jupyter-lab-widget__status"
-          data-state={sendState}
-        >
+        <div className="jupyter-lab-widget__status" data-state={sendState}>
           {status || "Ready"}
         </div>
 
         {showCode && (
           <div className="jupyter-lab-widget__section">
-            <div className="jupyter-lab-widget__section-title">Generated cell</div>
+            <div className="jupyter-lab-widget__section-title">
+              Generated cell
+            </div>
             <pre className="jupyter-lab-widget__code">{code}</pre>
           </div>
         )}
@@ -354,7 +385,12 @@ export function JupyterLabWidget() {
         <iframe
           ref={iframeRef}
           className="jupyter-lab-widget__frame"
+          onFocus={releaseInitialFrameFocus}
+          onPointerDown={() => {
+            releasedInitialFrameFocusRef.current = true;
+          }}
           src={JUPYTER_LAB_URL}
+          tabIndex={-1}
           title="JupyterLab"
         />
       </div>

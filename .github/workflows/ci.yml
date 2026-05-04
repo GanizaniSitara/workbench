@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  typecheck:
+    name: typecheck + codegen drift
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout workbench
+        uses: actions/checkout@v4
+
+      - name: Checkout open-moniker-engines (for OpenAPI schema)
+        uses: actions/checkout@v4
+        with:
+          repository: GanizaniSitara/open-moniker-engines
+          path: open-moniker-engines-checkout
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Regenerate engines types from upstream openapi.json
+        run: |
+          npx openapi-typescript open-moniker-engines-checkout/openapi.json -o src/lib/generated/engines.ts
+
+      - name: Verify generated types match committed copy
+        run: |
+          if ! git diff --exit-code src/lib/generated/engines.ts; then
+            echo "::error::src/lib/generated/engines.ts is out of date with open-moniker-engines main."
+            echo "::error::Run 'npm run codegen:engines' locally with that repo cloned as a sibling, then commit the result."
+            exit 1
+          fi
+
+      - name: Typecheck
+        run: npm run typecheck

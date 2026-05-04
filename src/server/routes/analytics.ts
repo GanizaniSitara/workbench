@@ -99,10 +99,10 @@ analyticsRouter.post("/brinson", async (req, res) => {
     return res.status(400).json({ error: parsed.error });
   }
 
-  const resolverUrl = process.env.MONIKER_RESOLVER_URL?.trim();
+  const resolverUrl = process.env.ANALYTICS_BASE_URL?.trim();
   if (!resolverUrl) {
     return res.status(503).json({
-      error: "MONIKER_RESOLVER_URL is not configured; analytics requires the Open Moniker service",
+      error: "ANALYTICS_BASE_URL is not configured; analytics requires the open-moniker-engines service",
     });
   }
 
@@ -133,10 +133,10 @@ analyticsRouter.post("/brinson/batch", async (req, res) => {
     return res.status(400).json({ error: parsed.error });
   }
 
-  const resolverUrl = process.env.MONIKER_RESOLVER_URL?.trim();
+  const resolverUrl = process.env.ANALYTICS_BASE_URL?.trim();
   if (!resolverUrl) {
     return res.status(503).json({
-      error: "MONIKER_RESOLVER_URL is not configured; analytics requires the Open Moniker service",
+      error: "ANALYTICS_BASE_URL is not configured; analytics requires the open-moniker-engines service",
     });
   }
 

@@ -27,7 +27,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json",
-    "codegen:engines": "openapi-typescript ${ENGINES_OPENAPI_PATH:-../open-moniker-engines/openapi.json} -o src/lib/generated/engines.ts",
+    "codegen:engines": "node scripts/codegen-engines.mjs",
     "codegen:check": "npm run codegen:engines && git diff --exit-code src/lib/generated/engines.ts"
   },
   "dependencies": {

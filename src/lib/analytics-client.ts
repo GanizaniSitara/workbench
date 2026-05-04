@@ -1,5 +1,5 @@
 import { apiUrl } from "@/lib/api-base";
-import type { components } from "@/lib/generated/engines";
+import type { components, operations } from "@/lib/generated/engines";
 
 /**
  * Types in this file are sourced from `open-moniker-engines`'s OpenAPI
@@ -13,7 +13,8 @@ export type BrinsonEffect = components["schemas"]["EffectValue"];
 export type BrinsonSectorRow = components["schemas"]["SectorRow"];
 export type BrinsonBatchItem = components["schemas"]["BatchItem"];
 export type BrinsonBatchRequest = components["schemas"]["BrinsonBatchRequest"];
-export type BrinsonBatchResponse = BrinsonResponse[];
+export type BrinsonBatchResponse =
+  operations["post_batch_analytics_brinson_batch_post"]["responses"][200]["content"]["application/json"];
 
 export async function runBrinson(req: BrinsonRequest): Promise<BrinsonResponse> {
   const response = await fetch(apiUrl("/api/analytics/brinson"), {

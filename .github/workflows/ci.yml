@@ -32,8 +32,9 @@ jobs:
         run: npm ci
 
       - name: Regenerate engines types from upstream openapi.json
-        run: |
-          npx openapi-typescript open-moniker-engines-checkout/openapi.json -o src/lib/generated/engines.ts
+        run: npm run codegen:engines
+        env:
+          ENGINES_OPENAPI_PATH: open-moniker-engines-checkout/openapi.json
 
       - name: Verify generated types match committed copy
         run: |

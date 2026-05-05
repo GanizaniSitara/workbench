@@ -1,0 +1,27 @@
+{
+  "$schema": "https://example.com/workbench/mcp-servers.schema.json",
+  "_comment": "Copy to mcp-servers.json (gitignored) and edit in place. The Express API loads mcp-servers.json on startup; if absent it falls back to this file with a warning. See docs/mcp-integration-design.md.",
+  "servers": {
+    "tasks": {
+      "transport": "streamable-http",
+      "url": "http://127.0.0.1:8876/mcp",
+      "enabled": true
+    },
+    "example-stdio": {
+      "transport": "stdio",
+      "command": "node",
+      "args": ["./path/to/your-mcp-server.js"],
+      "env": {},
+      "cwd": ".",
+      "enabled": false
+    },
+    "example-sse": {
+      "transport": "sse",
+      "url": "http://127.0.0.1:9000/sse",
+      "headers": {
+        "_comment": "Bearer tokens etc go here in your local mcp-servers.json (gitignored), not in this example."
+      },
+      "enabled": false
+    }
+  }
+}

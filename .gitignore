@@ -43,6 +43,9 @@ yarn-error.log*
 notebooks/.ipynb_checkpoints/
 docs/service-topology.md
 
+# operator-edited MCP server config (ships only mcp-servers.example.json)
+mcp-servers.json
+
 # runtime data (SQLite databases, etc.)
 /data/*.db
 /data/*.db-shm

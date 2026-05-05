@@ -5633,53 +5633,103 @@ code {
 
 .brinson-widget__controls {
   align-items: flex-end;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns:
+    minmax(170px, 1.35fr) minmax(170px, 1.35fr) minmax(118px, 0.65fr)
+    minmax(112px, 0.6fr) auto;
+}
+
+@media (max-width: 900px) {
+  .brinson-widget__controls {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .brinson-widget__controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+.brinson-widget__controls datalist {
+  display: none;
+}
+
+.brinson-widget__field,
+.brinson-widget__run {
+  --brinson-control-height: 28px;
+  --brinson-control-font-size: 0.76rem;
 }
 
 .brinson-widget__field {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 180px;
-  font-size: 0.72rem;
+  display: grid;
   gap: 3px;
+  grid-template-rows: 13px var(--brinson-control-height);
+  min-width: 0;
 }
 
 .brinson-widget__field span {
+  align-items: center;
   color: var(--muted);
+  display: flex;
+  font-size: 0.62rem;
   letter-spacing: 0.03em;
+  line-height: 1;
+  overflow: hidden;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.brinson-widget__field input,
+.brinson-widget__field select,
+.brinson-widget__run {
+  border-radius: 3px;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: var(--brinson-control-font-size);
+  height: var(--brinson-control-height);
+  line-height: 1.2;
 }
 
 .brinson-widget__field input,
 .brinson-widget__field select {
   background: var(--panel-background-strong);
   border: 1px solid var(--panel-border);
-  border-radius: 3px;
   color: inherit;
-  font-size: 0.85rem;
-  padding: 4px 6px;
+  min-width: 0;
+  padding: 0 7px;
+  width: 100%;
 }
 
-.brinson-widget__field--date {
-  flex: 0 0 130px;
+.brinson-widget__field input[type="date"] {
+  line-height: 24px;
+  min-width: 0;
+  padding: 2px 7px 0;
 }
 
-.brinson-widget__field--backend {
-  flex: 0 0 120px;
+.brinson-widget__field input[type="date"]::-webkit-date-and-time-value {
+  min-height: 0;
+  padding-top: 1px;
+  text-align: left;
 }
 
 .brinson-widget__run {
+  align-self: end;
+  align-items: center;
   background: var(--accent);
   border: 1px solid var(--accent);
-  border-radius: 3px;
   color: var(--background);
   cursor: pointer;
-  font-size: 0.8rem;
+  display: inline-flex;
   font-weight: 600;
-  height: 30px;
-  padding: 0 14px;
+  height: 26px;
+  justify-content: center;
+  line-height: 1;
+  margin-bottom: 1px;
+  min-width: 64px;
+  padding: 0 12px;
+  white-space: nowrap;
 }
 
 .brinson-widget__run:disabled {

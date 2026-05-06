@@ -101,7 +101,18 @@ function renderWidget(
     case "macro-watchlist":
       return <MacroWatchlistWidget moniker={moniker} />;
     case "placeholder-chat":
-      return <AiChatWidget sessionId={widget.config?.sessionId ?? widget.id} />;
+      return (
+        <AiChatWidget
+          sessionId={widget.config?.sessionId ?? widget.id}
+          widgetId={widget.id}
+          initialAllow={widget.config?.mcpAllow}
+          onAllowChange={(id, allow) =>
+            updateWidgetConfig(id, {
+              mcpAllow: allow === null ? "" : JSON.stringify(allow),
+            })
+          }
+        />
+      );
     case "placeholder-news":
       return <NewsWidget moniker={moniker} />;
     case "reference-rates":

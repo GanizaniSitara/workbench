@@ -5,6 +5,7 @@ import {
   FormEvent,
   KeyboardEvent,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -38,11 +39,23 @@ import {
   retrieveUserContextForPrompt,
 } from "@/lib/user-context";
 
+interface ToolTraceEntry {
+  iteration: number;
+  server: string;
+  tool: string;
+  args: unknown;
+  result: unknown;
+  durationMs: number;
+  truncated?: boolean;
+  error?: string;
+}
+
 interface ChatMessage {
   id?: string;
   role: "user" | "assistant";
   content: string;
   created_at?: string;
+  toolTrace?: ToolTraceEntry[];
 }
 
 interface ChatApiMessage {
@@ -65,8 +78,18 @@ interface ChatApiResponse {
   message?: {
     content?: string;
   };
+  toolTrace?: ToolTraceEntry[];
   error?: string;
 }
+
+interface McpServerStatus {
+  name: string;
+  state: "disconnected" | "connecting" | "ready" | "degraded";
+  toolCount: number;
+}
+
+const TRACE_MEMORY_TYPE = "tool_trace";
+const MSG_TOPIC_PREFIX = "msg:";
 
 function droppedMoniker(dataTransfer: DataTransfer): string | null {
   const raw =
@@ -95,29 +118,67 @@ function monikerSystemPrompt(moniker: string): string {
 async function fetchHistory(sessionId: string): Promise<ChatMessage[]> {
   if (!MEMORY_API) return [];
 
-  const res = await fetch(`${MEMORY_API}/v1/long-term-memory/search`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      text: "",
-      user_id: { eq: MEMORY_USER_ID },
-      namespace: { eq: CHAT_NAMESPACE },
-      session_id: { eq: sessionId },
-      memory_type: { eq: "message" },
-      limit: 100,
+  const [messageRes, traceRes] = await Promise.all([
+    fetch(`${MEMORY_API}/v1/long-term-memory/search`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        text: "",
+        user_id: { eq: MEMORY_USER_ID },
+        namespace: { eq: CHAT_NAMESPACE },
+        session_id: { eq: sessionId },
+        memory_type: { eq: "message" },
+        limit: 100,
+      }),
     }),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const body = (await res.json()) as SearchResponse;
-  return (body.memories ?? [])
-    .map((r) => ({
-      id: r.id,
-      role: (r.topics?.includes("user") ? "user" : "assistant") as
+    fetch(`${MEMORY_API}/v1/long-term-memory/search`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        text: "",
+        user_id: { eq: MEMORY_USER_ID },
+        namespace: { eq: CHAT_NAMESPACE },
+        session_id: { eq: sessionId },
+        memory_type: { eq: TRACE_MEMORY_TYPE },
+        limit: 100,
+      }),
+    }),
+  ]);
+
+  if (!messageRes.ok) throw new Error(`HTTP ${messageRes.status}`);
+  const messages = ((await messageRes.json()) as SearchResponse).memories ?? [];
+  const traces = traceRes.ok
+    ? (((await traceRes.json()) as SearchResponse).memories ?? [])
+    : [];
+
+  const traceByMessageId = new Map<string, ToolTraceEntry[]>();
+  for (const record of traces) {
+    const msgTopic = (record.topics ?? []).find((t) =>
+      t.startsWith(MSG_TOPIC_PREFIX),
+    );
+    if (!msgTopic) continue;
+    const messageId = msgTopic.slice(MSG_TOPIC_PREFIX.length);
+    try {
+      const parsed = JSON.parse(record.text) as ToolTraceEntry[];
+      if (Array.isArray(parsed)) traceByMessageId.set(messageId, parsed);
+    } catch {
+      // ignore malformed trace records
+    }
+  }
+
+  return messages
+    .map<ChatMessage>((r) => {
+      const role = (r.topics?.includes("user") ? "user" : "assistant") as
         | "user"
-        | "assistant",
-      content: r.text,
-      created_at: r.created_at,
-    }))
+        | "assistant";
+      return {
+        id: r.id,
+        role,
+        content: r.text,
+        created_at: r.created_at,
+        toolTrace: role === "assistant" ? traceByMessageId.get(r.id) : undefined,
+      };
+    })
     .sort((a, b) => {
       if (!a.created_at || !b.created_at) return 0;
       return (
@@ -127,6 +188,7 @@ async function fetchHistory(sessionId: string): Promise<ChatMessage[]> {
 }
 
 async function persistMessage(
+  id: string,
   sessionId: string,
   role: "user" | "assistant",
   content: string,
@@ -139,7 +201,7 @@ async function persistMessage(
     body: JSON.stringify({
       memories: [
         {
-          id: crypto.randomUUID(),
+          id,
           text: content,
           user_id: MEMORY_USER_ID,
           namespace: CHAT_NAMESPACE,
@@ -153,7 +215,167 @@ async function persistMessage(
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
-export function AiChatWidget({ sessionId }: { sessionId: string }) {
+async function persistToolTrace(
+  sessionId: string,
+  assistantMessageId: string,
+  trace: ToolTraceEntry[],
+): Promise<void> {
+  if (!MEMORY_API || trace.length === 0) return;
+
+  await fetch(`${MEMORY_API}/v1/long-term-memory/`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      memories: [
+        {
+          id: crypto.randomUUID(),
+          text: JSON.stringify(trace),
+          user_id: MEMORY_USER_ID,
+          namespace: CHAT_NAMESPACE,
+          session_id: sessionId,
+          memory_type: TRACE_MEMORY_TYPE,
+          topics: [`${MSG_TOPIC_PREFIX}${assistantMessageId}`],
+        },
+      ],
+    }),
+  }).catch(() => {
+    // best-effort; trace is a UX flourish, don't fail the chat turn
+  });
+}
+
+function parseAllowConfig(raw: string | undefined): string[] | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.every((s) => typeof s === "string")) {
+      return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function ToolTraceList({ trace }: { trace: ToolTraceEntry[] }) {
+  if (!trace.length) return null;
+  return (
+    <div className="ai-chat__trace">
+      {trace.map((entry, idx) => (
+        <details
+          className={[
+            "ai-chat__trace-row",
+            entry.error ? "ai-chat__trace-row--error" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          key={`${entry.server}-${entry.tool}-${idx}`}
+        >
+          <summary>
+            <span className="ai-chat__trace-name">
+              {entry.server}.{entry.tool}
+            </span>
+            <span className="ai-chat__trace-meta">
+              {entry.durationMs} ms
+              {entry.truncated ? " · truncated" : ""}
+              {entry.error ? " · error" : ""}
+            </span>
+          </summary>
+          <div className="ai-chat__trace-body">
+            <div>
+              <strong>args</strong>
+              <pre>{JSON.stringify(entry.args, null, 2)}</pre>
+            </div>
+            <div>
+              <strong>{entry.error ? "error" : "result"}</strong>
+              <pre>
+                {entry.error ?? JSON.stringify(entry.result, null, 2)}
+              </pre>
+            </div>
+          </div>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+interface ToolPickerProps {
+  servers: McpServerStatus[];
+  selection: string[] | null;
+  onChange: (next: string[] | null) => void;
+}
+
+function ToolPicker({ servers, selection, onChange }: ToolPickerProps) {
+  const [open, setOpen] = useState(false);
+  const ready = servers.filter((s) => s.state === "ready");
+  const enabledNames = useMemo(() => {
+    if (selection === null) return new Set(ready.map((s) => s.name));
+    return new Set(selection);
+  }, [selection, ready]);
+
+  if (ready.length === 0) return null;
+
+  const enabledCount = ready.filter((s) => enabledNames.has(s.name)).length;
+
+  const handleToggle = (name: string) => {
+    const next = new Set(enabledNames);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    if (next.size === ready.length) onChange(null);
+    else onChange(Array.from(next));
+  };
+
+  const handleAll = () => onChange(null);
+  const handleNone = () => onChange([]);
+
+  return (
+    <div className="ai-chat__tools">
+      <button
+        className="ai-chat__tools-toggle"
+        onClick={() => setOpen((v) => !v)}
+        type="button"
+      >
+        Tools ({enabledCount}/{ready.length})
+      </button>
+      {open && (
+        <div className="ai-chat__tools-menu" role="menu">
+          <div className="ai-chat__tools-menu-actions">
+            <button onClick={handleAll} type="button">
+              All
+            </button>
+            <button onClick={handleNone} type="button">
+              None
+            </button>
+          </div>
+          {ready.map((server) => (
+            <label className="ai-chat__tools-menu-item" key={server.name}>
+              <input
+                checked={enabledNames.has(server.name)}
+                onChange={() => handleToggle(server.name)}
+                type="checkbox"
+              />
+              <span>{server.name}</span>
+              <span className="ai-chat__tools-menu-count">
+                {server.toolCount}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function AiChatWidget({
+  sessionId,
+  widgetId,
+  initialAllow,
+  onAllowChange,
+}: {
+  sessionId: string;
+  widgetId?: string;
+  initialAllow?: string;
+  onAllowChange?: (widgetId: string, allow: string[] | null) => void;
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [activeMoniker, setActiveMoniker] = useState<string | null>(null);
@@ -161,6 +383,10 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [servers, setServers] = useState<McpServerStatus[]>([]);
+  const [allow, setAllow] = useState<string[] | null>(() =>
+    parseAllowConfig(initialAllow),
+  );
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -172,15 +398,34 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
   }, [sessionId]);
 
   useEffect(() => {
+    let cancelled = false;
+    fetch(apiUrl("/api/mcp/servers"))
+      .then((res) => (res.ok ? res.json() : { servers: [] }))
+      .then((body: { servers?: McpServerStatus[] }) => {
+        if (!cancelled) setServers(body.servers ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  function handleAllowChange(next: string[] | null) {
+    setAllow(next);
+    if (widgetId && onAllowChange) onAllowChange(widgetId, next);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = draft.trim();
     if (!content || isSending) return;
 
-    const userMsg: ChatMessage = { role: "user", content };
+    const userMsgId = crypto.randomUUID();
+    const userMsg: ChatMessage = { id: userMsgId, role: "user", content };
     const chatHistory: ChatApiMessage[] = [...messages, userMsg].map(
       ({ role, content: messageContent }) => ({
         role,
@@ -193,7 +438,7 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
     setIsSending(true);
 
     try {
-      await persistMessage(sessionId, "user", content);
+      await persistMessage(userMsgId, sessionId, "user", content);
       const contextFacts = await retrieveUserContextForPrompt(
         MEMORY_USER_ID,
         content,
@@ -216,18 +461,27 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
       const response = await fetch(apiUrl("/api/chat"), {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ messages: messagesForModel }),
+        body: JSON.stringify({
+          messages: messagesForModel,
+          mcp: allow === null ? undefined : { allow },
+        }),
       });
       const body = (await response.json()) as ChatApiResponse;
       if (!response.ok)
         throw new Error(body.error ?? `HTTP ${response.status}`);
 
+      const assistantId = crypto.randomUUID();
       const reply: ChatMessage = {
+        id: assistantId,
         role: "assistant",
         content: body.message?.content?.trim() || "No response returned.",
+        toolTrace: body.toolTrace,
       };
       setMessages((prev) => [...prev, reply]);
-      await persistMessage(sessionId, "assistant", reply.content);
+      await persistMessage(assistantId, sessionId, "assistant", reply.content);
+      if (body.toolTrace?.length) {
+        await persistToolTrace(sessionId, assistantId, body.toolTrace);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -287,6 +541,13 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
+      <div className="ai-chat__toolbar">
+        <ToolPicker
+          servers={servers}
+          selection={allow}
+          onChange={handleAllowChange}
+        />
+      </div>
       <div className="ai-chat__messages">
         {isLoading && <div className="ai-chat__state">Loading…</div>}
         {!isLoading && messages.length === 0 && (
@@ -299,6 +560,9 @@ export function AiChatWidget({ sessionId }: { sessionId: string }) {
             className={`ai-chat__message ai-chat__message--${msg.role}`}
             key={msg.id ?? `${msg.role}-${i}`}
           >
+            {msg.role === "assistant" && msg.toolTrace?.length ? (
+              <ToolTraceList trace={msg.toolTrace} />
+            ) : null}
             <ChatMessageContent
               content={msg.content}
               showCopyActions={msg.role === "assistant"}

@@ -110,11 +110,9 @@ detects this by request — if the user-selected model isn't in the
 tool-capable allowlist, we skip passing `tools` at all and the chat behaves
 exactly as it does today. The allowlist is a config constant, easy to extend.
 
-**Open question — flagged, not decided:** should we add an Anthropic API path
-alongside Ollama for higher-fidelity tool use? It would give us cleaner
-streaming and stronger schema adherence, at the cost of API key management
-and a per-token spend. Recommendation: defer until after v1 lands and we have
-real telemetry on Ollama's tool-call failure rate.
+**Decision (2026-05-06): Ollama only.** No Anthropic path, no provider
+abstraction in v1. If Ollama tool-calling proves unreliable in v1 testing
+we revisit then; until then we don't pay the key-management surface cost.
 
 ---
 
@@ -187,9 +185,19 @@ Changes to `/api/chat`:
 - The existing happy-path response shape (`{ model, message }`) is preserved.
   Clients that don't read `toolTrace` keep working.
 
-**Per-conversation server selection** — the `allow` field is the v1 mechanism.
-The widget can grow a "tools enabled" picker later; for v1, the default is
-"all connected servers". (See open questions.)
+**Per-conversation server selection (decided 2026-05-06):** v1 ships a real
+picker UI in the chat widget. Header gets a "Tools" dropdown listing
+connected servers with per-server checkboxes plus "select all" / "select
+none". Selection persists per chat-window UUID via the existing
+`WidgetDefinition.config` layer (same place `sessionId` lives — set by
+WBN-006). New config key:
+
+- `mcpAllow` — JSON-stringified array of `<server>` or `<server>.<tool>`
+  entries. Absent or empty means "all connected servers". Each outgoing
+  `/api/chat` request reflects the current selection in `mcp.allow`.
+
+Default for a brand-new chat widget instance: all connected servers
+enabled.
 
 ---
 
@@ -226,9 +234,40 @@ Render shape (v1, deliberately minimal):
   v1; the existing chat doesn't stream either, and adding it here doubles the
   blast radius.
 
-Persistence: tool traces are message metadata, not separate memory entries.
-The chat widget continues to call `persistMessage(...)` for the user and
-assistant text — see open questions on whether to also persist the trace.
+**Persistence (decided 2026-05-06):** tool traces persist as separate
+agent-memory records under the same `session_id` so chat-history reload
+reconstructs the trace under each assistant turn. Shape:
+
+```jsonc
+{
+  "id": "<uuid>",
+  "user_id": "admin",
+  "namespace": "workbench.chat",
+  "session_id": "<chat-window UUID>",
+  "memory_type": "tool_trace",
+  "topics": [],
+  "text": "<JSON-stringified ToolTraceEntry[]>",
+  "metadata": { "assistant_message_id": "<id of the message record>" }
+}
+```
+
+Write order on a tool-using turn:
+
+1. Persist the user message (existing flow, unchanged).
+2. Persist the assistant message — capture its `id`.
+3. Persist a `tool_trace` record carrying that `id` in
+   `metadata.assistant_message_id`.
+
+On reload, the widget fetches both `memory_type="message"` and
+`memory_type="tool_trace"` records for the session and joins traces to
+their assistant message by id. Records with no matching message (e.g. a
+trace orphaned by a partial write) are dropped silently.
+
+Why a separate record type rather than appending the trace to the message
+text: the message `text` is the assistant's user-facing output and is what
+markdown rendering and any downstream summarisation operates on. Mixing
+JSON into it bleeds into rendered output the moment the model emits
+similar fenced blocks.
 
 ---
 
@@ -302,21 +341,26 @@ keeping all auth in one file makes audit and rotation simpler.
 - `src/server/routes/mcp.ts` (the three `/api/mcp/*` endpoints).
 - `src/server/routes/chat.ts` extended with the orchestration loop and the
   `mcp` request flag. Non-MCP path unchanged.
-- `ai-chat-widget.tsx` extended with a `<details>`-based tool trace renderer.
+- `ai-chat-widget.tsx` extended with:
+  - A `<details>`-based tool trace renderer.
+  - A "Tools" picker dropdown in the widget header — listing connected
+    servers with per-server checkboxes, `mcpAllow` persisted in the
+    widget's `config` blob.
+- Tool-trace persistence: separate `memory_type="tool_trace"` agent-memory
+  records joined to assistant messages by id on reload.
 - One Vitest unit test of the orchestrator (mocked Ollama + mocked MCP client).
 - One Playwright API contract test against `GET /api/mcp/tools`.
 - Manual smoke: chat asks "how many in-progress tasks do I have?" → model calls
-  `tasks.task_summary` → result rendered + summarised.
+  `tasks.task_summary` → result rendered + summarised → reload tab → trace
+  re-appears under the assistant turn.
 
 **Explicitly not in v1 (nice-to-have, follow-ups):**
 
 - Streaming responses.
-- Per-conversation tool picker UI.
-- Per-tool consent / click-through approval.
+- Per-tool consent / click-through approval (auto-execute in v1).
 - Anthropic API backend.
 - Parallel tool-call dispatch (the SDK and Ollama both allow it; v1 dispatches
   sequentially to keep the loop trivial).
-- Persisting tool traces to the agent-memory layer.
 - A second connected MCP server.
 
 ---
@@ -340,19 +384,25 @@ keeping all auth in one file makes audit and rotation simpler.
 
 ---
 
-## 11. Open questions (surfaced; not decided)
+## 11. Decisions log
 
-1. **Anthropic API alongside Ollama?** Defer; revisit after v1 telemetry.
-2. **Per-conversation server allowlist surfaced in the widget?** v1 ships
-   global config + a programmatic `mcp.allow` request field. UI control is a
-   follow-up.
-3. **Per-tool consent (click-through approve) vs auto-execute?** v1
-   auto-executes. Worth revisiting for tools that mutate (e.g. once we add a
-   write-capable MCP server). Read-only servers like `tasks` are low risk.
-4. **Persist tool-call traces in agent-memory?** Recommendation: log them as
-   a separate memory record with `memory_type="tool_trace"` and the same
-   `session_id`, so chat history reload can reconstruct the trace. Out of
-   scope for v1.
+Resolved 2026-05-06:
+
+1. **Anthropic API alongside Ollama?** **No.** Ollama only in v1, no
+   provider abstraction. Revisit only if Ollama tool-calling proves
+   unreliable in v1 testing.
+2. **Per-conversation server selection in the widget?** **Yes — full picker
+   UI in v1.** "Tools" dropdown in the chat-widget header, per-server
+   checkboxes, persisted per chat-window UUID via the widget config layer
+   as `mcpAllow`. Default for new chats is "all connected".
+3. **Per-tool consent vs auto-execute?** **Auto-execute, no consent
+   plumbing.** With only a read-only server (`tasks`) connected, consent
+   is unnecessary. Will be revisited the moment a write-capable server
+   lands.
+4. **Persist tool-call traces?** **Yes — separate `tool_trace` records.**
+   Traces persist as their own agent-memory record under the same
+   `session_id`, joined to assistant messages by id on reload (see §6
+   for the record shape and write order).
 
 ---
 

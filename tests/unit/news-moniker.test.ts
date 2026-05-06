@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   newsApiPath,
+  newsMonikerFromSymbols,
   newsProviderFromMoniker,
   newsTopicFromMoniker,
   symbolsFromNewsMoniker,
@@ -14,6 +15,17 @@ describe("news monikers", () => {
       "MSFT",
     ]);
     expect(newsProviderFromMoniker("news.company/AAPL")).toBe("openbb");
+  });
+
+  it("keeps an explicitly empty company-news moniker empty", () => {
+    expect(symbolsFromNewsMoniker("news.company", ["SPY", "QQQ"])).toEqual([]);
+    expect(symbolsFromNewsMoniker("news.company/", ["SPY", "QQQ"])).toEqual([]);
+    expect(newsMonikerFromSymbols([])).toBe("news.company");
+  });
+
+  it("falls back only when the moniker is not company-news symbol state", () => {
+    expect(symbolsFromNewsMoniker(undefined, ["SPY"])).toEqual(["SPY"]);
+    expect(symbolsFromNewsMoniker("news/gdelt", ["SPY"])).toEqual(["SPY"]);
   });
 
   it("treats GDELT news as provider-linked, not symbol-linked", () => {

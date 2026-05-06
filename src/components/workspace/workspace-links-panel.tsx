@@ -35,9 +35,19 @@ const LINK_GROUPS: Array<{
 
 export function WorkspaceLinksPanel() {
   const [collapsed, setCollapsed] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  function toggleGroup(heading: string) {
+    setExpanded((current) => ({
+      ...current,
+      [heading]: !(current[heading] ?? false),
+    }));
+  }
 
   return (
-    <div className={`workspace-links-panel${collapsed ? " workspace-links-panel--collapsed" : ""}`}>
+    <div
+      className={`workspace-links-panel${collapsed ? " workspace-links-panel--collapsed" : ""}`}
+    >
       <button
         className="workspace-links-panel__header"
         onClick={() => setCollapsed((c) => !c)}
@@ -53,24 +63,50 @@ export function WorkspaceLinksPanel() {
       </button>
       {!collapsed && (
         <div className="workspace-links-panel__body">
-          {LINK_GROUPS.map((group) => (
-            <div className="workspace-links-panel__group" key={group.heading}>
-              <div className="workspace-links-panel__group-heading">
-                {group.heading}
-              </div>
-              {group.links.map((link) => (
-                <a
-                  className="workspace-links-panel__link"
-                  href={link.url}
-                  key={link.url}
-                  rel="noreferrer"
-                  target="_blank"
+          <ul className="workspace-links-panel__root" role="list">
+            {LINK_GROUPS.map((group) => {
+              const isOpen = expanded[group.heading] ?? false;
+              return (
+                <li
+                  className="workspace-links-panel__group"
+                  key={group.heading}
                 >
-                  {link.label}
-                </a>
-              ))}
-            </div>
-          ))}
+                  <button
+                    className="workspace-links-panel__group-heading"
+                    onClick={() => toggleGroup(group.heading)}
+                    type="button"
+                  >
+                    <span
+                      className="workspace-links-panel__group-chevron"
+                      data-open={isOpen ? "true" : "false"}
+                      aria-hidden="true"
+                    >
+                      ›
+                    </span>
+                    <span className="workspace-links-panel__group-name">
+                      {group.heading}
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <ul className="workspace-links-panel__children" role="list">
+                      {group.links.map((link) => (
+                        <li key={link.url}>
+                          <a
+                            className="workspace-links-panel__link"
+                            href={link.url}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            {link.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
     </div>

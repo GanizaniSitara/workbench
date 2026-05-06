@@ -60,6 +60,13 @@ export function NewsFeedWidget({
   async function loadNews(syms: string[]) {
     setLoading(true);
     setError(null);
+    if (syms.length === 0) {
+      setItems([]);
+      setProvider(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(apiUrl(newsApiPath(moniker, syms, 30)));
       const body = (await response.json()) as NewsResponse;
@@ -161,7 +168,10 @@ export function NewsFeedWidget({
           News unavailable
         </div>
       )}
-      {!loading && !error && items.length === 0 && (
+      {!loading && !error && symbols.length === 0 && (
+        <div className="news-feed__state">Add a ticker to load headlines</div>
+      )}
+      {!loading && !error && symbols.length > 0 && items.length === 0 && (
         <div className="news-feed__state">No headlines found</div>
       )}
 

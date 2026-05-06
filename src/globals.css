@@ -375,8 +375,9 @@ code {
 .open-moniker-panel {
   background: var(--panel-background);
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   flex-direction: column;
+  max-height: min(30rem, 58vh);
   min-height: 0;
 }
 
@@ -450,8 +451,9 @@ code {
 
 .open-moniker-panel__tree {
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   flex-direction: column;
+  max-height: min(26rem, calc(58vh - 4.5rem));
   min-height: 0;
   overflow: auto;
   padding: 0.25rem 0 0.5rem;
@@ -791,6 +793,7 @@ code {
 /* ─── Links panel ────────────────────────────────────────────────────── */
 .workspace-links-panel {
   background: var(--panel-background);
+  border-top: 1px solid var(--panel-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -834,29 +837,61 @@ code {
 .workspace-links-panel__body {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  gap: 0.1rem;
+  flex: 0 1 auto;
+  max-height: min(18rem, 40vh);
   overflow-y: auto;
   padding: 0.25rem 0;
 }
 
-.workspace-links-panel__group {
-  display: flex;
-  flex-direction: column;
-  padding: 0.15rem 0;
-}
-
-.workspace-links-panel__group + .workspace-links-panel__group {
-  border-top: 1px solid var(--panel-border-subtle);
+.workspace-links-panel__root,
+.workspace-links-panel__children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .workspace-links-panel__group-heading {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--foreground);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 0.25rem;
+  height: 1.35rem;
+  padding: 0 0.35rem 0 0.4rem;
+  text-align: left;
+  width: 100%;
+}
+
+.workspace-links-panel__group-heading:hover {
+  background: var(--panel-border-subtle);
+}
+
+.workspace-links-panel__group-chevron {
   color: var(--muted);
-  font-size: 0.53rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  padding: 0.2rem 0.5rem 0.1rem;
-  text-transform: uppercase;
+  display: inline-block;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 0.1s ease;
+  width: 0.5rem;
+}
+
+.workspace-links-panel__group-chevron[data-open="true"] {
+  transform: rotate(90deg);
+}
+
+.workspace-links-panel__group-name {
+  color: var(--foreground);
+  flex: 1;
+  font-size: 0.64rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .workspace-links-panel__link {
@@ -864,7 +899,7 @@ code {
   display: block;
   font-size: 0.68rem;
   overflow: hidden;
-  padding: 0.15rem 0.5rem;
+  padding: 0.15rem 0.5rem 0.15rem 1.55rem;
   text-decoration: none;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -873,6 +908,99 @@ code {
 .workspace-links-panel__link:hover {
   background: var(--panel-background-strong);
   color: var(--accent);
+}
+
+/* ─── APIs panel ─────────────────────────────────────────────────────── */
+.workspace-apis-panel {
+  background: var(--panel-background);
+  border-top: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.workspace-apis-panel__header {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--panel-border);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.6rem;
+  font-weight: 700;
+  justify-content: space-between;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.workspace-apis-panel__header:hover {
+  color: var(--foreground);
+}
+
+.workspace-apis-panel__chevron {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  transform: rotate(0deg);
+  transition: transform 0.15s;
+}
+
+.workspace-apis-panel__root {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+}
+
+.workspace-apis-panel__item {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--foreground);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 0.25rem;
+  height: 1.35rem;
+  padding: 0 0.35rem 0 0.4rem;
+  text-align: left;
+  width: 100%;
+}
+
+.workspace-apis-panel__item:hover,
+.workspace-apis-panel__item[data-active="true"] {
+  background: var(--panel-border-subtle);
+}
+
+.workspace-apis-panel__item:disabled {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.58;
+}
+
+.workspace-apis-panel__item:disabled:hover {
+  background: transparent;
+}
+
+.workspace-apis-panel__item-marker {
+  color: var(--muted);
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  line-height: 1;
+  width: 0.5rem;
+}
+
+.workspace-apis-panel__item-name {
+  flex: 1;
+  font-size: 0.64rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── User profile ───────────────────────────────────────────────────── */

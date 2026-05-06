@@ -47,7 +47,7 @@ export interface Screen {
 }
 
 export interface WorkspaceLayout {
-  version: 11;
+  version: 12;
   userId: string;
   screens: Screen[];
   activeScreenId: string;
@@ -58,7 +58,7 @@ export const CHARTS_SCREEN_ID = "screen-charts";
 export const APIS_SCREEN_ID = "screen-apis";
 
 const STORAGE_KEY = "workbench-layout-v1";
-const LAYOUT_VERSION = 11;
+const LAYOUT_VERSION = 12;
 
 const SCREEN1_WIDGETS: WidgetDefinition[] = [
   { id: "macro-1", type: "macro-strip", title: "Macro" },
@@ -76,6 +76,12 @@ const SCREEN1_WIDGETS: WidgetDefinition[] = [
     title: "GDELT Consensus",
     config: { moniker: "news/gdelt" },
   },
+  {
+    id: "news-feed-1",
+    type: "news-feed",
+    title: "News",
+    config: { moniker: "news.company/SPY,QQQ" },
+  },
 ];
 
 const SCREEN1_GRID: LayoutItem[] = [
@@ -83,7 +89,8 @@ const SCREEN1_GRID: LayoutItem[] = [
   { i: "news-1", x: 8, y: 0, w: 4, h: 4, minW: 2, minH: 3 },
   { i: "macro-timeseries-1", x: 0, y: 4, w: 8, h: 10, minW: 4, minH: 4 },
   { i: "macro-watchlist-1", x: 8, y: 4, w: 4, h: 10, minW: 2, minH: 4 },
-  { i: "chat-1", x: 0, y: 14, w: 12, h: 6, minW: 3, minH: 3 },
+  { i: "news-feed-1", x: 0, y: 14, w: 6, h: 7, minW: 3, minH: 4 },
+  { i: "chat-1", x: 6, y: 14, w: 6, h: 7, minW: 3, minH: 3 },
 ];
 
 const SCREEN2_WIDGETS: WidgetDefinition[] = [
@@ -239,6 +246,9 @@ function normalizeHomeGdeltLayout(screen: Screen): Screen {
   if (screen.id !== "screen-1") return screen;
 
   const hasNewsWidget = screen.widgets.some((widget) => widget.id === "news-1");
+  const hasNewsFeedWidget = screen.widgets.some(
+    (widget) => widget.id === "news-feed-1",
+  );
   const widgets = [
     ...screen.widgets.map((widget) =>
       widget.id === "macro-timeseries-1"
@@ -267,9 +277,20 @@ function normalizeHomeGdeltLayout(screen: Screen): Screen {
             config: { moniker: "news/gdelt" },
           },
         ]),
+    ...(hasNewsFeedWidget
+      ? []
+      : [
+          {
+            id: "news-feed-1",
+            type: "news-feed" as const,
+            title: "News",
+            config: { moniker: "news.company/SPY,QQQ" },
+          },
+        ]),
   ];
 
   const hasNewsGrid = screen.grid.some((item) => item.i === "news-1");
+  const hasNewsFeedGrid = screen.grid.some((item) => item.i === "news-feed-1");
   const grid = [
     ...screen.grid.map((item) => {
       if (item.i === "macro-1") {
@@ -284,14 +305,20 @@ function normalizeHomeGdeltLayout(screen: Screen): Screen {
       if (item.i === "macro-watchlist-1") {
         return { ...item, x: 8, y: 4, w: 4, h: 10, minW: 2, minH: 4 };
       }
+      if (item.i === "news-feed-1") {
+        return { ...item, x: 0, y: 14, w: 6, h: 7, minW: 3, minH: 4 };
+      }
       if (item.i === "chat-1") {
-        return { ...item, x: 0, y: 14, w: 12, h: 6, minW: 3, minH: 3 };
+        return { ...item, x: 6, y: 14, w: 6, h: 7, minW: 3, minH: 3 };
       }
       return item;
     }),
     ...(hasNewsGrid
       ? []
       : [{ i: "news-1", x: 8, y: 0, w: 4, h: 4, minW: 2, minH: 3 }]),
+    ...(hasNewsFeedGrid
+      ? []
+      : [{ i: "news-feed-1", x: 0, y: 14, w: 6, h: 7, minW: 3, minH: 4 }]),
   ];
 
   return {
@@ -442,16 +469,12 @@ export function loadLayout(userId: string): WorkspaceLayout {
             widgets: parsed.widgets ?? [],
             grid: parsed.grid ?? [],
           },
-          defaults.screens[1],
-          defaults.screens[2],
-          defaults.screens[3],
-          defaults.screens[4],
-          defaults.screens[5],
+          ...defaults.screens.slice(1),
         ],
       };
     }
 
-    // Migrate v4/v5/v6 -> v11: preserve existing screens and ensure default screens.
+    // Migrate v4/v5/v6 -> v12: preserve existing screens and ensure default screens.
     if (
       (parsed.version === 4 || parsed.version === 5 || parsed.version === 6) &&
       parsed.userId === userId
@@ -464,12 +487,13 @@ export function loadLayout(userId: string): WorkspaceLayout {
       };
     }
 
-    // Migrate v7/v8/v9/v10 -> v11: add catalog/charts screens and normalize default grids.
+    // Migrate v7/v8/v9/v10/v11 -> v12: add default screens and normalize Home widgets.
     if (
       (parsed.version === 7 ||
         parsed.version === 8 ||
         parsed.version === 9 ||
-        parsed.version === 10) &&
+        parsed.version === 10 ||
+        parsed.version === 11) &&
       parsed.userId === userId
     ) {
       return {

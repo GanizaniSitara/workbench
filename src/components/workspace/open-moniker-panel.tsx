@@ -33,7 +33,10 @@ async function fetchMonikerTree(): Promise<MonikerTreeResponse> {
   return body;
 }
 
-function filterTree(nodes: MonikerTreeNode[], query: string): MonikerTreeNode[] {
+function filterTree(
+  nodes: MonikerTreeNode[],
+  query: string,
+): MonikerTreeNode[] {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return nodes;
 
@@ -64,15 +67,18 @@ function MonikerNode({
   node,
   depth,
   expanded,
+  forceOpen,
   onToggle,
 }: {
   node: MonikerTreeNode;
   depth: number;
   expanded: Record<string, boolean>;
+  forceOpen: boolean;
   onToggle: (path: string) => void;
 }) {
   const hasChildren = node.children.length > 0;
-  const isOpen = expanded[node.path] ?? depth < 1;
+  const isOpen = forceOpen || (expanded[node.path] ?? false);
+  const isSourceLeaf = node.has_source_binding && !hasChildren;
 
   function selectMoniker() {
     if (!node.has_source_binding) return;
@@ -90,21 +96,24 @@ function MonikerNode({
     <li>
       <button
         className="open-moniker-panel__node"
-        draggable={node.has_source_binding}
+        draggable={isSourceLeaf}
         onClick={() => {
-          if (node.has_source_binding) {
-            selectMoniker();
-          } else if (hasChildren) {
+          if (hasChildren) {
             onToggle(node.path);
+          } else if (node.has_source_binding) {
+            selectMoniker();
           }
         }}
         onDragStart={(event) => {
-          if (!node.has_source_binding) return;
+          if (!isSourceLeaf) return;
           const payload = JSON.stringify({
             path: node.path,
             sourceType: node.source_type,
           });
-          event.dataTransfer.setData("application/x-workbench-moniker", payload);
+          event.dataTransfer.setData(
+            "application/x-workbench-moniker",
+            payload,
+          );
           event.dataTransfer.setData("text/plain", node.path);
           event.dataTransfer.effectAllowed = "copy";
         }}
@@ -121,7 +130,7 @@ function MonikerNode({
           ›
         </span>
         <span className="open-moniker-panel__node-name">{node.name}</span>
-        {node.has_source_binding && (
+        {isSourceLeaf && (
           <span className="open-moniker-panel__source">
             {node.source_type ?? "source"}
           </span>
@@ -135,6 +144,7 @@ function MonikerNode({
               node={child}
               depth={depth + 1}
               expanded={expanded}
+              forceOpen={forceOpen}
               onToggle={onToggle}
             />
           ))}
@@ -156,6 +166,7 @@ export function OpenMonikerPanel() {
   });
 
   const tree = treeQuery.data?.tree ?? [];
+  const hasFilter = query.trim().length > 0;
   const filteredTree = useMemo(() => filterTree(tree, query), [tree, query]);
 
   function toggle(path: string) {
@@ -209,6 +220,7 @@ export function OpenMonikerPanel() {
                     node={node}
                     depth={0}
                     expanded={expanded}
+                    forceOpen={hasFilter}
                     onToggle={toggle}
                   />
                 ))}

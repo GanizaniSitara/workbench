@@ -2,7 +2,7 @@ export type NewsProvider = "openbb" | "gdelt";
 
 const NEWS_MONIKER_RE = /^news\.([^/]+)(?:\/(.+))?$/;
 const NEWS_SLASH_MONIKER_RE = /^news\/([^/]+)(?:\/(.+))?$/;
-const NEWS_COMPANY_SYMBOLS_RE = /^news\.company\/(.+)$/;
+const NEWS_COMPANY_SYMBOLS_RE = /^news\.company(?:\/(.*))?$/;
 const EQUITY_SYMBOL_RE = /^equity\.prices\/([^/]+)/;
 
 export function symbolsFromNewsMoniker(
@@ -12,14 +12,13 @@ export function symbolsFromNewsMoniker(
   const equitySymbol = moniker?.match(EQUITY_SYMBOL_RE)?.[1];
   if (equitySymbol) return [equitySymbol.toUpperCase()];
 
-  const symbols = moniker?.match(NEWS_COMPANY_SYMBOLS_RE)?.[1];
-  if (!symbols) return fallback;
+  const companyMatch = moniker?.match(NEWS_COMPANY_SYMBOLS_RE);
+  if (!companyMatch) return fallback;
 
-  const parsed = symbols
+  return (companyMatch[1] ?? "")
     .split(",")
     .map((symbol) => symbol.trim().toUpperCase())
     .filter(Boolean);
-  return parsed.length ? parsed : fallback;
 }
 
 export function newsMonikerFromSymbols(symbols: string[]): string {

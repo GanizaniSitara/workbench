@@ -29,8 +29,11 @@ test.describe("data-backed widgets", () => {
       "10Y Treasury",
     );
     await expect(page.getByLabel("Macro indicators")).toContainText("4.18%");
-    await expect(page.getByText("Treasury curve steepens")).toBeVisible();
-    await expect(page.getByText("2 headlines")).toBeVisible();
+    await expect(page.getByText("GDELT Consensus")).toBeVisible();
+    await expect(
+      page.getByText("Treasury curve steepens").first(),
+    ).toBeVisible();
+    await expect(page.getByText("2 headlines").first()).toBeVisible();
 
     await diagnostics.assertClean();
   });
@@ -43,12 +46,10 @@ test.describe("data-backed widgets", () => {
     await openCleanWorkbench(page);
     await switchToScreen(page, "Equity");
 
-    const referenceRates = page.getByLabel("Reference rates", { exact: true });
-
-    await expect(referenceRates).toContainText("SONIA");
-    await expect(referenceRates).toContainText("4.21%");
+    await expect(page.getByText("Equity Chart")).toBeVisible();
     await expect(page.getByLabel("Ticker symbol")).toHaveValue("AAPL");
     await expect(page.getByText("$211.05")).toBeVisible();
+    await expect(page.getByText("AI Chat")).toBeVisible();
 
     await diagnostics.assertClean();
   });

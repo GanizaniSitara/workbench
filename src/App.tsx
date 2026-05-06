@@ -3,6 +3,7 @@ import { Providers } from "@/providers";
 import { WorkspaceToolbar } from "@/components/workspace/workspace-toolbar";
 import { WorkspaceGrid } from "@/components/workspace/workspace-grid";
 import { OpenMonikerPanel } from "@/components/workspace/open-moniker-panel";
+import { WorkspaceApisPanel } from "@/components/workspace/workspace-apis-panel";
 import { WorkspaceLinksPanel } from "@/components/workspace/workspace-links-panel";
 
 const MIN_RAIL_WIDTH = 120;
@@ -19,7 +20,10 @@ export default function App() {
     if (!dragging.current) return;
     const delta = e.clientX - startX.current;
     setRailWidth(
-      Math.min(MAX_RAIL_WIDTH, Math.max(MIN_RAIL_WIDTH, startWidth.current + delta)),
+      Math.min(
+        MAX_RAIL_WIDTH,
+        Math.max(MIN_RAIL_WIDTH, startWidth.current + delta),
+      ),
     );
   }, []);
 
@@ -52,15 +56,19 @@ export default function App() {
 
   return (
     <Providers>
-      <div className="workspace" style={{ "--rail-width": `${railWidth}px` } as React.CSSProperties}>
+      <div
+        className="workspace"
+        style={{ "--rail-width": `${railWidth}px` } as React.CSSProperties}
+      >
         <WorkspaceToolbar />
         <div className="workspace__body">
           <aside
             className="workspace__left-rail"
             style={{ flex: `0 0 ${railWidth}px` }}
           >
-            <WorkspaceLinksPanel />
             <OpenMonikerPanel />
+            <WorkspaceLinksPanel />
+            <WorkspaceApisPanel />
             <div
               className="workspace__left-rail-resizer"
               onMouseDown={onHResizerDown}

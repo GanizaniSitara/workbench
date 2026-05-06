@@ -43,13 +43,23 @@ const MONIKER_TREE_FIXTURE = {
 const MACRO_SNAPSHOT = {
   shape: "snapshot",
   results: [
-    { id: "FEDFUNDS", label: "Fed Funds Rate", value: 4.33, date: "2026-04-30" },
+    {
+      id: "FEDFUNDS",
+      label: "Fed Funds Rate",
+      value: 4.33,
+      date: "2026-04-30",
+    },
     { id: "DGS2", label: "2Y Treasury", value: 3.72, date: "2026-04-30" },
     { id: "DGS10", label: "10Y Treasury", value: 4.18, date: "2026-04-30" },
     { id: "DGS30", label: "30Y Treasury", value: 4.74, date: "2026-04-30" },
     { id: "T10Y2Y", label: "10Y-2Y Spread", value: 0.46, date: "2026-04-30" },
     { id: "CPIAUCSL", label: "CPI", value: 319.8, date: "2026-04-30" },
-    { id: "UNRATE", label: "Unemployment Rate", value: 4.1, date: "2026-04-30" },
+    {
+      id: "UNRATE",
+      label: "Unemployment Rate",
+      value: 4.1,
+      date: "2026-04-30",
+    },
     { id: "VIXCLS", label: "VIX", value: 16.25, date: "2026-04-30" },
   ],
 };
@@ -192,6 +202,26 @@ const NEWS_FIXTURE = {
   ],
 };
 
+const GDELT_NEWS_FIXTURE = {
+  shape: "news",
+  provider: "gdelt",
+  source: "fixture",
+  results: NEWS_FIXTURE.results,
+  consensus: {
+    averageTone: 0.72,
+    latestTone: 1.18,
+    positive: 5,
+    neutral: 3,
+    negative: 2,
+    trend: "improving",
+    timeline: [
+      { date: "2026-04-30T08:00:00Z", value: -0.2 },
+      { date: "2026-04-30T09:00:00Z", value: 0.4 },
+      { date: "2026-04-30T10:00:00Z", value: 1.18 },
+    ],
+  },
+};
+
 function seriesFixture(symbol = "DGS10", range = "3m") {
   return {
     shape: "timeseries",
@@ -229,9 +259,15 @@ function fixtureForDataQuery(request: DataQueryRequest) {
   if (moniker === "macro.indicators" && shape === "snapshot") {
     return MACRO_SNAPSHOT;
   }
-  if (moniker === "macro.indicators" && shape === "timeseries") {
+  if (
+    (moniker === "macro.indicators" ||
+      moniker.startsWith("macro.indicators/")) &&
+    shape === "timeseries"
+  ) {
     return seriesFixture(
-      typeof request.params?.symbol === "string" ? request.params.symbol : "DGS10",
+      typeof request.params?.symbol === "string"
+        ? request.params.symbol
+        : (moniker.split("/")[1] ?? "DGS10"),
       typeof request.params?.range === "string" ? request.params.range : "3m",
     );
   }
@@ -263,6 +299,9 @@ function fixtureForDataQuery(request: DataQueryRequest) {
   if (moniker.startsWith("portfolio.position/")) {
     return POSITION_DETAIL;
   }
+  if (moniker === "news/gdelt" && shape === "news") {
+    return GDELT_NEWS_FIXTURE;
+  }
 
   return { error: `No fixture for ${moniker}`, status: 404 };
 }
@@ -282,7 +321,9 @@ export function captureBrowserDiagnostics(page: Page) {
   });
   page.on("requestfailed", (request) => {
     const failure = request.failure();
-    failedRequests.push(`${request.method()} ${request.url()} ${failure?.errorText ?? ""}`.trim());
+    failedRequests.push(
+      `${request.method()} ${request.url()} ${failure?.errorText ?? ""}`.trim(),
+    );
   });
 
   return {
@@ -311,7 +352,7 @@ export async function mockStableWorkbenchApis(page: Page) {
 }
 
 export async function mockStableWidgetData(page: Page) {
-  await page.route("**/api/news", async (route) => {
+  await page.route("**/api/news**", async (route) => {
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify(NEWS_FIXTURE),
@@ -337,7 +378,9 @@ export async function openCleanWorkbench(page: Page) {
     window.localStorage.removeItem("workbench-layout-v1");
   });
   await page.reload({ waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("banner", { name: "Workspace toolbar" })).toBeVisible();
+  await expect(
+    page.getByRole("banner", { name: "Workspace toolbar" }),
+  ).toBeVisible();
   await expect(page.locator(".workspace-grid")).toBeVisible();
 }
 
@@ -347,8 +390,5 @@ export async function switchToScreen(page: Page, screenName: string) {
     .getByRole("button", { name: screenName, exact: true });
 
   await button.click();
-  await expect(button).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(button).toHaveAttribute("aria-pressed", "true");
 }

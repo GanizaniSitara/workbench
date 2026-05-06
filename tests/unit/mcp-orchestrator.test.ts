@@ -243,7 +243,7 @@ describe("runChatTurn", () => {
     ]);
 
     const fetchMock: typeof fetch = vi.fn(
-      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+      async () => {
         return new Response(
           JSON.stringify({ message: { role: "assistant", content: "hi" } }),
           { status: 200, headers: { "content-type": "application/json" } },

@@ -31,7 +31,7 @@ const TOOLS = [
   {
     name: "search_monikers",
     description:
-      "Search the workbench INSTRUMENT catalog (FRED macro series, corporate bonds, UK equities) by name or symbol. Does NOT search portfolio holdings, news, or analytics endpoints — for portfolio data use query_data with moniker 'portfolio.positions'. Use this only for ticker/symbol lookups.",
+      "Search the workbench INSTRUMENT catalog (FRED macro series, corporate bonds, UK equities) by name or symbol. Returns explicit Workbench monikers for chart/query use. Does NOT search portfolio holdings, news, or analytics endpoints — for portfolio data use query_data with moniker 'portfolio.positions'. Use this only for ticker/symbol lookups.",
     inputSchema: {
       type: "object",
       properties: {
@@ -92,6 +92,26 @@ const TOOLS = [
   },
 ];
 
+function monikerForSearchResult(result) {
+  const symbol = String(result.symbol ?? "").trim();
+  if (!symbol) return null;
+  if (result.kind === "macro") return `macro.indicators/${symbol}`;
+  if (result.kind === "bond") return `corporate.bonds/${symbol}`;
+  if (result.kind === "equity") return `equity.prices/${symbol}`;
+  return null;
+}
+
+function enrichSearchPayload(payload) {
+  if (!payload || !Array.isArray(payload.results)) return payload;
+  return {
+    ...payload,
+    results: payload.results.map((result) => ({
+      ...result,
+      moniker: result.moniker ?? monikerForSearchResult(result),
+    })),
+  };
+}
+
 async function dispatch(name, args) {
   args = args ?? {};
   let url;
@@ -141,6 +161,9 @@ async function dispatch(name, args) {
     payload = JSON.parse(body);
   } catch {
     payload = body;
+  }
+  if (name === "search_monikers") {
+    payload = enrichSearchPayload(payload);
   }
   return { ok: res.ok, status: res.status, payload };
 }

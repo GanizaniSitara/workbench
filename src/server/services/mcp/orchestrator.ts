@@ -5,6 +5,12 @@ export const TOOL_NAME_SEPARATOR = "__";
 const MAX_ITERATIONS = 5;
 const PER_TOOL_TIMEOUT_MS = 30_000;
 const TOOL_RESULT_SIZE_CAP = 64 * 1024;
+const TOOL_USE_SYSTEM_PROMPT = [
+  "Workbench tool-use policy:",
+  "- For questions about local Workbench data, portfolio holdings, instrument catalogs, market data, tasks, or any connected system, call a relevant tool before answering.",
+  "- Do not invent identifiers or monikers. If a tool result contains a moniker or path, use that exact value.",
+  "- If a relevant tool returns no data or an error, say what is unavailable and do not fabricate values.",
+].join("\n");
 
 const TOOL_CAPABLE_MODEL_PREFIXES = ["qwen3:", "llama3.1:", "llama3.2:"];
 
@@ -91,10 +97,16 @@ export async function runChatTurn(
   const trace: ToolTraceEntry[] = [];
 
   for (let iter = 1; iter <= MAX_ITERATIONS; iter++) {
+    const modelMessages = sendTools
+      ? [
+          { role: "system" as const, content: TOOL_USE_SYSTEM_PROMPT },
+          ...messages,
+        ]
+      : messages;
     const ollama = await callOllama(
       req.baseUrl,
       req.model,
-      messages,
+      modelMessages,
       sendTools ? toOllamaTools(tools) : undefined,
       req.ollamaTimeoutMs,
     );
@@ -227,7 +239,10 @@ function parseToolArgs(value: unknown): Record<string, unknown> {
   return {};
 }
 
-function capPayload(content: unknown): { payload: unknown; truncated: boolean } {
+function capPayload(content: unknown): {
+  payload: unknown;
+  truncated: boolean;
+} {
   const serialised = JSON.stringify(content) ?? "null";
   if (serialised.length <= TOOL_RESULT_SIZE_CAP) {
     return { payload: content, truncated: false };
@@ -264,7 +279,9 @@ async function callOllama(
     signal: AbortSignal.timeout(timeoutMs),
   });
 
-  const json = (await response.json().catch(() => null)) as OllamaApiResponse | null;
+  const json = (await response
+    .json()
+    .catch(() => null)) as OllamaApiResponse | null;
   if (!response.ok) {
     throw new Error(
       json?.error ??

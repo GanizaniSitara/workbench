@@ -30,6 +30,8 @@ interface WorkspaceContextValue {
   activeScreenId: string;
   setActiveScreenId: (id: string) => void;
   addScreen: () => void;
+  renameScreen: (id: string, name: string) => void;
+  removeScreen: (id: string) => void;
   maximizedWidgetId: string | null;
   updateGrid: (grid: LayoutItem[]) => void;
   addWidget: (widget: WidgetDefinition, position?: Partial<LayoutItem>) => void;
@@ -338,7 +340,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       const n = prev.screens.length + 1;
       const newScreen: Screen = {
         id: `screen-${crypto.randomUUID()}`,
-        name: `Screen ${n}`,
+        name: `Layout ${n}`,
         widgets: [],
         grid: [],
       };
@@ -347,6 +349,34 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         screens: [...prev.screens, newScreen],
         activeScreenId: newScreen.id,
       };
+    });
+  }, []);
+
+  const renameScreen = useCallback((id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setFullLayout((prev) => ({
+      ...prev,
+      screens: prev.screens.map((screen) =>
+        screen.id === id ? { ...screen, name: trimmed } : screen,
+      ),
+    }));
+  }, []);
+
+  const removeScreen = useCallback((id: string) => {
+    setFullLayout((prev) => {
+      if (prev.screens.length <= 1) return prev;
+      const next = prev.screens.filter((screen) => screen.id !== id);
+      const nextActiveId =
+        prev.activeScreenId === id ? next[0].id : prev.activeScreenId;
+      if (prev.activeScreenId === id) {
+        setMaximizedWidgetId(
+          defaultMaximizedWidgetId(
+            next.find((screen) => screen.id === nextActiveId),
+          ),
+        );
+      }
+      return { ...prev, screens: next, activeScreenId: nextActiveId };
     });
   }, []);
 
@@ -363,6 +393,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         activeScreenId: fullLayout.activeScreenId,
         setActiveScreenId,
         addScreen,
+        renameScreen,
+        removeScreen,
         maximizedWidgetId,
         updateGrid,
         addWidget,

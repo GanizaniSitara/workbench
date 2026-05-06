@@ -46,9 +46,9 @@ export function WorkspaceToolbar() {
               className="workspace-toolbar__btn workspace-toolbar__screen-btn"
               onClick={addScreen}
               type="button"
-              aria-label="Add new screen"
+              aria-label="Add new layout"
             >
-              + Screen
+              + Layout
             </button>
           </div>
           <div className="workspace-toolbar__divider" aria-hidden="true" />

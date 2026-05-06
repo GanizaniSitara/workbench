@@ -13,7 +13,6 @@ const STUB_USER = {
 
 const MENU_ITEMS = [
   { id: "profile", label: "Profile" },
-  { id: "context", label: "Context" },
   { id: "settings", label: "Settings" },
   { id: "divider" },
   { id: "signout", label: "Sign out" },
@@ -21,7 +20,7 @@ const MENU_ITEMS = [
 
 export function UserProfile() {
   const [open, setOpen] = useState(false);
-  const [contextOpen, setContextOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -79,7 +78,7 @@ export function UserProfile() {
                   className={`user-profile__menu-item${item.id === "signout" ? " user-profile__menu-item--danger" : ""}`}
                   onClick={() => {
                     setOpen(false);
-                    if (item.id === "context") setContextOpen(true);
+                    if (item.id === "profile") setProfileOpen(true);
                   }}
                   role="menuitem"
                   type="button"
@@ -92,8 +91,9 @@ export function UserProfile() {
         )}
       </div>
       <UserContextDrawer
-        isOpen={contextOpen}
-        onClose={() => setContextOpen(false)}
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        user={STUB_USER}
       />
     </>
   );

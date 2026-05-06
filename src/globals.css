@@ -1060,7 +1060,7 @@ code {
   position: absolute;
   right: 0;
   top: calc(100% + 3px);
-  z-index: 300;
+  z-index: 500;
 }
 
 .user-profile__dropdown-header {
@@ -1181,6 +1181,169 @@ code {
   line-height: 1;
   padding: 0;
   width: 1.4rem;
+}
+
+.user-context__identity {
+  align-items: center;
+  border-bottom: 1px solid var(--panel-border);
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.6rem;
+  padding: 0.75rem;
+}
+
+.user-context__identity-avatar {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 50%;
+  color: var(--accent-contrast);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  height: 2rem;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  width: 2rem;
+}
+
+.user-context__identity-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-context__identity-name {
+  color: var(--foreground);
+  font-size: 0.78rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-context__identity-role {
+  color: var(--muted);
+  font-size: 0.68rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-context__layouts {
+  border-bottom: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem 0.75rem;
+}
+
+.user-context__section-title {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.user-context__layout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.user-context__layout-row {
+  align-items: center;
+  border: 1px solid transparent;
+  border-left: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.5rem;
+}
+
+.user-context__layout-row:hover {
+  background: var(--panel-border-subtle);
+}
+
+.user-context__layout-row--active {
+  background: var(--panel-border-subtle);
+  border-color: var(--panel-border);
+  border-left-color: var(--accent);
+}
+
+.user-context__layout-name {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--foreground);
+  flex: 1;
+  font: inherit;
+  font-size: 0.78rem;
+  min-width: 0;
+  padding: 0.2rem 0.35rem;
+}
+
+.user-context__layout-name:hover {
+  border-color: var(--panel-border);
+}
+
+.user-context__layout-name:focus {
+  background: var(--background);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.user-context__layout-remove {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  height: 1.4rem;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 1.4rem;
+}
+
+.user-context__layout-remove:hover:not(:disabled) {
+  background: var(--panel-border-subtle);
+  color: var(--foreground);
+}
+
+.user-context__layout-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.user-context__layout-add {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed var(--panel-border);
+  border-radius: 3px;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  margin-top: 0.2rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.user-context__layout-add:hover {
+  border-color: var(--accent);
+  color: var(--foreground);
 }
 
 .user-context__close:hover {

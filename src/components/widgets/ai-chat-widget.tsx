@@ -90,6 +90,12 @@ interface McpServerStatus {
 
 const TRACE_MEMORY_TYPE = "tool_trace";
 const MSG_TOPIC_PREFIX = "msg:";
+const chatInstances = new Set<string>();
+let activeChatInstanceId: string | null = null;
+
+function markActiveChat(instanceId: string) {
+  activeChatInstanceId = instanceId;
+}
 
 function droppedMoniker(dataTransfer: DataTransfer): string | null {
   const raw =
@@ -110,8 +116,9 @@ function droppedMoniker(dataTransfer: DataTransfer): string | null {
 function monikerSystemPrompt(moniker: string): string {
   return [
     `Active Workbench Moniker: ${moniker}`,
-    "Use this as the dataset or instrument context for the user's next request.",
-    "When useful, explain what the moniker likely resolves to and suggest concrete Workbench queries or chart actions using that exact moniker.",
+    "Use this exact moniker as the selected dataset or instrument context for the user's next request.",
+    "If the user asks about this dataset, this instrument, the selected data, or uses words like 'this', 'it', 'here', or 'current', call data.query_data with this exact moniker before answering.",
+    "Do not rewrite, shorten, or infer a different moniker.",
   ].join("\n");
 }
 
@@ -176,7 +183,8 @@ async function fetchHistory(sessionId: string): Promise<ChatMessage[]> {
         role,
         content: r.text,
         created_at: r.created_at,
-        toolTrace: role === "assistant" ? traceByMessageId.get(r.id) : undefined,
+        toolTrace:
+          role === "assistant" ? traceByMessageId.get(r.id) : undefined,
       };
     })
     .sort((a, b) => {
@@ -287,9 +295,7 @@ function ToolTraceList({ trace }: { trace: ToolTraceEntry[] }) {
             </div>
             <div>
               <strong>{entry.error ? "error" : "result"}</strong>
-              <pre>
-                {entry.error ?? JSON.stringify(entry.result, null, 2)}
-              </pre>
+              <pre>{entry.error ?? JSON.stringify(entry.result, null, 2)}</pre>
             </div>
           </div>
         </details>
@@ -387,6 +393,7 @@ export function AiChatWidget({
   const [allow, setAllow] = useState<string[] | null>(() =>
     parseAllowConfig(initialAllow),
   );
+  const instanceId = widgetId ?? sessionId;
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -413,6 +420,33 @@ export function AiChatWidget({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    chatInstances.add(instanceId);
+
+    function handleMonikerSelect(event: Event) {
+      const detail = (event as CustomEvent<{ path?: unknown }>).detail;
+      if (typeof detail?.path !== "string" || !detail.path.trim()) return;
+      if (activeChatInstanceId && activeChatInstanceId !== instanceId) {
+        return;
+      }
+      if (!activeChatInstanceId && chatInstances.size > 1) return;
+
+      setActiveMoniker(detail.path.trim());
+      markActiveChat(instanceId);
+      inputRef.current?.focus();
+    }
+
+    window.addEventListener("workbench:moniker-select", handleMonikerSelect);
+    return () => {
+      window.removeEventListener(
+        "workbench:moniker-select",
+        handleMonikerSelect,
+      );
+      chatInstances.delete(instanceId);
+      if (activeChatInstanceId === instanceId) activeChatInstanceId = null;
+    };
+  }, [instanceId]);
 
   function handleAllowChange(next: string[] | null) {
     setAllow(next);
@@ -516,7 +550,11 @@ export function AiChatWidget({
   }
 
   function handleDragLeave(event: DragEvent<HTMLDivElement>) {
-    if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node)) {
+    if (
+      !(event.currentTarget as HTMLElement).contains(
+        event.relatedTarget as Node,
+      )
+    ) {
       setIsDragOver(false);
     }
   }
@@ -528,6 +566,7 @@ export function AiChatWidget({
     const moniker = droppedMoniker(event.dataTransfer);
     if (!moniker) return;
 
+    markActiveChat(instanceId);
     setActiveMoniker(moniker);
     inputRef.current?.focus();
   }
@@ -540,6 +579,8 @@ export function AiChatWidget({
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onFocusCapture={() => markActiveChat(instanceId)}
+      onPointerDown={() => markActiveChat(instanceId)}
     >
       <div className="ai-chat__toolbar">
         <ToolPicker

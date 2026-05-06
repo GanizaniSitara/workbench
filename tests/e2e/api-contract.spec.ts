@@ -64,4 +64,58 @@ test.describe("@api workbench contract", () => {
       "portfolio-adapter",
     ]);
   });
+
+  test("MCP servers endpoint returns the configured server list", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/mcp/servers");
+    expect(response.ok()).toBe(true);
+
+    const body = (await response.json()) as {
+      servers?: Array<{
+        name?: string;
+        state?: string;
+        transport?: string;
+        enabled?: boolean;
+        toolCount?: number;
+      }>;
+    };
+
+    expect(Array.isArray(body.servers)).toBe(true);
+    for (const server of body.servers ?? []) {
+      expect(typeof server.name).toBe("string");
+      expect([
+        "disconnected",
+        "connecting",
+        "ready",
+        "degraded",
+      ]).toContain(server.state);
+      expect(["stdio", "streamable-http", "sse"]).toContain(server.transport);
+      expect(typeof server.toolCount).toBe("number");
+    }
+  });
+
+  test("MCP tools endpoint returns a flat catalog with stable shape", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/mcp/tools");
+    expect(response.ok()).toBe(true);
+
+    const body = (await response.json()) as {
+      tools?: Array<{
+        server?: string;
+        tool?: string;
+        description?: string;
+        inputSchema?: unknown;
+      }>;
+    };
+
+    expect(Array.isArray(body.tools)).toBe(true);
+    for (const tool of body.tools ?? []) {
+      expect(typeof tool.server).toBe("string");
+      expect(typeof tool.tool).toBe("string");
+      expect(typeof tool.description).toBe("string");
+      expect(tool.inputSchema).toBeDefined();
+    }
+  });
 });

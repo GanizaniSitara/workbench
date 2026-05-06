@@ -7,8 +7,11 @@ import { dataRouter } from "./routes/data";
 import { createDataProxyRouter } from "./routes/data-proxy";
 import { handleJupyterUpgrade, jupyterRouter } from "./routes/jupyter";
 import { marketRouter } from "./routes/market";
+import { mcpRouter } from "./routes/mcp";
 import { newsRouter } from "./routes/news";
 import { profileRouter } from "./routes/profile";
+import { loadServersConfig } from "./services/mcp/config";
+import { mcpManager } from "./services/mcp/manager";
 
 const app = express();
 const allowedOrigins = (process.env.FRONTEND_ORIGIN ?? "")
@@ -104,8 +107,11 @@ app.use(
 );
 app.use("/api/jupyter", jupyterRouter);
 app.use("/api/market", marketRouter);
+app.use("/api/mcp", mcpRouter);
 app.use("/api/news", newsRouter);
 app.use("/api/profile", profileRouter);
+
+void mcpManager.start(loadServersConfig());
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });

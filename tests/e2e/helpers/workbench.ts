@@ -7,6 +7,8 @@ interface DataQueryRequest {
 }
 
 const MONIKER_TREE_FIXTURE = {
+  mode: "resolver",
+  resolverUrl: "http://resolver.fixture",
   tree: [
     {
       path: "portfolio",

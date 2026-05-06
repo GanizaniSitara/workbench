@@ -18,6 +18,9 @@ interface MonikerTreeNode {
 
 interface MonikerTreeResponse {
   tree: MonikerTreeNode[];
+  mode?: "resolver" | "local-fallback" | string;
+  reason?: string;
+  resolverUrl?: string;
 }
 
 async function fetchMonikerTree(): Promise<MonikerTreeResponse> {
@@ -154,6 +157,52 @@ function MonikerNode({
   );
 }
 
+function catalogSourceStatus(
+  query: ReturnType<typeof useQuery<MonikerTreeResponse>>,
+) {
+  if (query.isError) {
+    return {
+      label: "Error",
+      tone: "error",
+      title: "Catalog source unavailable",
+    };
+  }
+
+  if (query.isLoading) {
+    return {
+      label: "Loading",
+      tone: "loading",
+      title: "Loading catalog source",
+    };
+  }
+
+  if (query.data?.mode === "resolver") {
+    return {
+      label: "Resolver",
+      tone: "resolver",
+      title: query.data.resolverUrl
+        ? `Open Moniker resolver: ${query.data.resolverUrl}`
+        : "Open Moniker resolver",
+    };
+  }
+
+  if (query.data?.mode === "local-fallback") {
+    return {
+      label: "Local",
+      tone: "fallback",
+      title: query.data.reason
+        ? `Workbench local fallback: ${query.data.reason}`
+        : "Workbench local fallback",
+    };
+  }
+
+  return {
+    label: "Unknown",
+    tone: "unknown",
+    title: "Catalog source unknown",
+  };
+}
+
 export function OpenMonikerPanel() {
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
@@ -168,6 +217,7 @@ export function OpenMonikerPanel() {
   const tree = treeQuery.data?.tree ?? [];
   const hasFilter = query.trim().length > 0;
   const filteredTree = useMemo(() => filterTree(tree, query), [tree, query]);
+  const sourceStatus = catalogSourceStatus(treeQuery);
 
   function toggle(path: string) {
     setExpanded((current) => ({
@@ -186,7 +236,17 @@ export function OpenMonikerPanel() {
         onClick={() => setCollapsed((c) => !c)}
         type="button"
       >
-        <span className="open-moniker-panel__title">Open Moniker</span>
+        <span className="open-moniker-panel__heading">
+          <span className="open-moniker-panel__title">Open Moniker</span>
+          <span
+            aria-label={`Catalog source: ${sourceStatus.title}`}
+            className="open-moniker-panel__source-status"
+            data-tone={sourceStatus.tone}
+            title={sourceStatus.title}
+          >
+            {sourceStatus.label}
+          </span>
+        </span>
         <span
           className="open-moniker-panel__header-chevron"
           style={{ transform: `rotate(${collapsed ? 0 : 90}deg)` }}

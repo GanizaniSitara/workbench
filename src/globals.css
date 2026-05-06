@@ -426,6 +426,49 @@ code {
   text-transform: uppercase;
 }
 
+.open-moniker-panel__heading {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.open-moniker-panel__source-status {
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  padding: 0.14rem 0.26rem;
+  text-transform: uppercase;
+}
+
+.open-moniker-panel__source-status[data-tone="resolver"] {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--panel-border));
+  color: var(--accent);
+}
+
+.open-moniker-panel__source-status[data-tone="fallback"] {
+  border-color: color-mix(
+    in srgb,
+    var(--open-moniker-warning, #a15c00) 50%,
+    var(--panel-border)
+  );
+  color: var(--open-moniker-warning, #a15c00);
+}
+
+.open-moniker-panel__source-status[data-tone="error"] {
+  border-color: color-mix(
+    in srgb,
+    var(--open-moniker-danger, #b3261e) 48%,
+    var(--panel-border)
+  );
+  color: var(--open-moniker-danger, #b3261e);
+}
+
 .open-moniker-panel__filter {
   border-bottom: 1px solid var(--panel-border-subtle);
   flex-shrink: 0;

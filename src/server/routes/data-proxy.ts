@@ -4,6 +4,7 @@ const HOP_BY_HOP_HEADERS = new Set([
   "connection",
   "content-encoding",
   "content-length",
+  "expect",
   "host",
   "keep-alive",
   "proxy-authenticate",
